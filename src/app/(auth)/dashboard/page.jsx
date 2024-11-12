@@ -1,132 +1,193 @@
 "use client";
-import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import {
-  FaUsers,
   FaBox,
-  FaChartLine,
-  FaSignOutAlt,
   FaShoppingCart,
-  FaCog,
-  FaHome,
-  FaClipboardList,
-  FaBars,
+  FaUsers,
+  FaLayerGroup,
+  FaChartLine,
 } from "react-icons/fa";
+import QueryWrapper from "@/components/shared/QueryWrapper";
 
 export default function Dashboard() {
-  const router = useRouter();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  // جلب إحصائيات الأصناف
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
+    queryKey: ["categories-count"],
+    queryFn: async () => {
+      const response = await fetch(
+        "https://backend-v1-psi.vercel.app/categories/product-count/",
+        {
+          headers: { accept: "application/json" },
+        }
+      );
+      if (!response.ok) throw new Error("فشل في جلب إحصائيات الأصناف");
+      return response.json();
+    },
+  });
 
-  const handleLogout = useCallback(() => {
-    localStorage.removeItem("token");
-    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
-    router.push("/login");
-  }, [router]);
+  // جلب المنتجات
+  const { data: products = [], isLoading: productsLoading } = useQuery({
+    queryKey: ["products"],
+    queryFn: async () => {
+      const response = await fetch(
+        "https://backend-v1-psi.vercel.app/product/",
+        {
+          headers: { accept: "application/json" },
+        }
+      );
+      if (!response.ok) throw new Error("فشل في جلب المنتجات");
+      return response.json();
+    },
+  });
 
-  const menuItems = [
-    { icon: <FaHome />, title: "الرئيسية", path: "/dashboard" },
-    { icon: <FaBox />, title: "المنتجات", path: "/dashboard/products" },
-    { icon: <FaClipboardList />, title: "الطلبات", path: "/dashboard/orders" },
-    { icon: <FaUsers />, title: "العملاء", path: "/dashboard/customers" },
-    { icon: <FaChartLine />, title: "التقارير", path: "/dashboard/reports" },
-    { icon: <FaCog />, title: "الإعدادات", path: "/dashboard/settings" },
-  ];
+  // جلب الموردين
+  const { data: suppliers = [], isLoading: suppliersLoading } = useQuery({
+    queryKey: ["suppliers"],
+    queryFn: async () => {
+      const response = await fetch(
+        "https://backend-v1-psi.vercel.app/suppliers/",
+        {
+          headers: { accept: "application/json" },
+        }
+      );
+      if (!response.ok) throw new Error("فشل في جلب الموردين");
+      return response.json();
+    },
+  });
+
+  // حساب الإحصائيات
+  const stats = {
+    categories: categories.length,
+    products: products.length,
+    suppliers: suppliers.length,
+    totalValue: products.reduce(
+      (sum, product) => sum + (product.SellPrice || 0),
+      0
+    ),
+  };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex">
-      {/* Sidebar */}
-      <aside
-        className={`bg-white shadow-lg fixed right-0 top-0 h-full transition-all duration-300 ${
-          isSidebarOpen ? "w-64" : "w-20"
-        }`}
-      >
-        <div className="p-4 border-b">
-          <div className="flex items-center justify-between">
-            {isSidebarOpen && (
-              <span className="text-xl font-bold text-gray-800">
-                متجرك الإلكتروني
-              </span>
-            )}
-            <button
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="p-2 rounded-lg hover:bg-gray-100"
-            >
-              <FaBars className="text-gray-600" />
-            </button>
-          </div>
-        </div>
-
-        <nav className="mt-6">
-          {menuItems.map((item, index) => (
-            <button
-              key={index}
-              onClick={() => router.push(item.path)}
-              className="w-full flex items-center p-4 hover:bg-blue-50 text-gray-700 hover:text-blue-600 transition-colors"
-            >
-              <span className="text-xl">{item.icon}</span>
-              {isSidebarOpen && (
-                <span className="mr-4 text-sm font-medium">{item.title}</span>
-              )}
-            </button>
-          ))}
-
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center p-4 hover:bg-red-50 text-red-600 transition-colors mt-4"
-          >
-            <span className="text-xl">
-              <FaSignOutAlt />
-            </span>
-            {isSidebarOpen && (
-              <span className="mr-4 text-sm font-medium">تسجيل الخروج</span>
-            )}
-          </button>
-        </nav>
-      </aside>
-
-      {/* Main Content */}
-      <main
-        className={`flex-1 transition-all duration-300 ${
-          isSidebarOpen ? "mr-64" : "mr-20"
-        }`}
-      >
-        {/* Header */}
-        <header className="bg-white shadow-sm">
-          <div className="mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              <h1 className="text-2xl font-bold text-gray-900">لوحة التحكم</h1>
-              <div className="flex items-center gap-4">
-                <span className="text-gray-600">مرحباً بك</span>
-                <button className="p-2 rounded-full hover:bg-gray-100">
-                  <FaCog className="text-gray-600" />
-                </button>
+    <QueryWrapper
+      loading={categoriesLoading || productsLoading || suppliersLoading}
+    >
+      <div className="p-6">
+        {/* الإحصائيات */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-sm mb-1">الأصناف</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.categories}
+                </p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-full">
+                <FaLayerGroup className="text-blue-600 text-2xl" />
               </div>
             </div>
           </div>
-        </header>
 
-        {/* Dashboard Content */}
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* إحصائيات سريعة */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className="p-3 bg-blue-100 rounded-full">
-                  <FaShoppingCart className="text-blue-600 text-xl" />
-                </div>
-                <div className="mr-4">
-                  <p className="text-gray-500 text-sm">إجمالي المبيعات</p>
-                  <p className="text-2xl font-bold text-gray-900">25,430 ر.س</p>
-                </div>
+          <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-sm mb-1">المنتجات</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.products}
+                </p>
+              </div>
+              <div className="p-3 bg-green-100 rounded-full">
+                <FaBox className="text-green-600 text-2xl" />
               </div>
             </div>
-
-            {/* يمكنك إضافة المزيد من البطاقات الإحصائية هنا */}
           </div>
 
-          {/* يمكنك إضافة المزيد من المحتوى هنا */}
+          <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-sm mb-1">الموردين</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.suppliers}
+                </p>
+              </div>
+              <div className="p-3 bg-purple-100 rounded-full">
+                <FaUsers className="text-purple-600 text-2xl" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-sm mb-1">إجمالي القيمة</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.totalValue.toLocaleString("ar-LY")} د.ل
+                </p>
+              </div>
+              <div className="p-3 bg-orange-100 rounded-full">
+                <FaChartLine className="text-orange-600 text-2xl" />
+              </div>
+            </div>
+          </div>
         </div>
-      </main>
-    </div>
+
+        {/* الأصناف الأكثر منتجات */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-4">
+              الأصناف الأكثر منتجات
+            </h2>
+            <div className="space-y-4">
+              {categories
+                .sort((a, b) => b.ProductCount - a.ProductCount)
+                .slice(0, 5)
+                .map((category) => (
+                  <div
+                    key={category.CategoryID}
+                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+                  >
+                    <div className="flex items-center gap-3">
+                      <FaLayerGroup className="text-blue-600" />
+                      <span className="font-medium text-gray-900">
+                        {category.CategoryName}
+                      </span>
+                    </div>
+                    <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                      {category.ProductCount} منتج
+                    </span>
+                  </div>
+                ))}
+            </div>
+          </div>
+
+          {/* المنتجات الأعلى سعراً */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-4">
+              المنتجات الأعلى سعراً
+            </h2>
+            <div className="space-y-4">
+              {products
+                .sort((a, b) => (b.SellPrice || 0) - (a.SellPrice || 0))
+                .slice(0, 5)
+                .map((product) => (
+                  <div
+                    key={product.ProductID}
+                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+                  >
+                    <div className="flex items-center gap-3">
+                      <FaBox className="text-green-600" />
+                      <span className="font-medium text-gray-900">
+                        {product.ProductName}
+                      </span>
+                    </div>
+                    <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                      {product.SellPrice?.toLocaleString("ar-LY")} د.ل
+                    </span>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </QueryWrapper>
   );
 }

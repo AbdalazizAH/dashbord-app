@@ -1,6 +1,22 @@
+'use client';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useState } from 'react';
 import { AuthProvider } from './providers/AuthProvider';
 import localFont from "next/font/local";
 import "./globals.css";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30000, // البيانات تعتبر قديمة بعد 30 ثانية
+      cacheTime: 3600000, // تخزين البيانات لمدة ساعة
+      retry: 2, // محاولة إعادة الطلب مرتين في حالة الفشل
+      suspense: true, // تفعيل Suspense
+      refetchOnWindowFocus: false, // عدم إعادة الطلب عند التركيز على النافذة
+      refetchOnMount: false, // عدم إعادة الطلب عند تركيب المكون
+    },
+  },
+});
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -13,16 +29,13 @@ const geistMono = localFont({
   weight: "100 900",
 });
 
-export const metadata = {
-  title: "متجرك الإلكتروني",
-  description: "لوحة تحكم المتجر الإلكتروني",
-};
-
 export default function RootLayout({ children }) {
   return (
     <html lang="ar" dir="rtl">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <AuthProvider>{children}</AuthProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>{children}</AuthProvider>
+        </QueryClientProvider>
       </body>
     </html>
   );
