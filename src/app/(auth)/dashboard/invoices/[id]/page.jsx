@@ -53,7 +53,7 @@ export default function InvoiceDetails({ params }) {
   // تحديث العناصر المحلية عند تحميل الفاتورة
   useEffect(() => {
     if (invoice) {
-      setLocalItems(invoice.items);
+      setLocalItems(invoice.items || []);
     }
   }, [invoice]);
 
@@ -91,16 +91,17 @@ export default function InvoiceDetails({ params }) {
   const updateItemMutation = useMutation({
     mutationFn: async ({ itemId, data }) => {
       const response = await fetch(
-        `https://backend-v1-psi.vercel.app/invoices-items/${itemId}`,
+        `https://backend-v1-psi.vercel.app/invoices/${invoiceId}/items/${itemId}`,
         {
-          method: "PATCH",
+          method: "PUT",
           headers: {
             "Content-Type": "application/json",
             accept: "application/json",
           },
           body: JSON.stringify({
-            ...data,
-            TotalPrice: data.Quantity * data.BuyPrice,
+            Quantity: data.Quantity,
+            BuyPrice: data.BuyPrice,
+            SellPrice: data.SellPrice,
           }),
         }
       );
@@ -114,24 +115,28 @@ export default function InvoiceDetails({ params }) {
 
   // إضافة عنصر جديد
   const addItemMutation = useMutation({
-    mutationFn: async (data) => {
+    mutationFn: async (items) => {
+      // تحويل العناصر إلى الشكل المطلوب
+      const formattedItems = Array.isArray(items) ? items : [items];
+      const itemsToSend = formattedItems.map((item) => ({
+        ProductID: item.ProductID,
+        Quantity: item.Quantity,
+        BuyPrice: item.BuyPrice,
+        SellPrice: item.SellPrice,
+      }));
+
       const response = await fetch(
-        "https://backend-v1-psi.vercel.app/invoices-items/",
+        `https://backend-v1-psi.vercel.app/invoices/${invoiceId}/items`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             accept: "application/json",
           },
-          body: JSON.stringify({
-            ...data,
-            InvoiceID: invoiceId,
-            IsPurchased: true,
-            TotalPrice: data.Quantity * data.BuyPrice,
-          }),
+          body: JSON.stringify(itemsToSend),
         }
       );
-      if (!response.ok) throw new Error("فشل في إضافة العنصر");
+      if (!response.ok) throw new Error("فشل في إضافة العناصر");
       return response.json();
     },
     onSuccess: () => {
@@ -149,7 +154,7 @@ export default function InvoiceDetails({ params }) {
   const deleteItemMutation = useMutation({
     mutationFn: async (itemId) => {
       const response = await fetch(
-        `https://backend-v1-psi.vercel.app/invoices-items/${itemId}`,
+        `https://backend-v1-psi.vercel.app/invoices/${invoiceId}/items/${itemId}`,
         {
           method: "DELETE",
           headers: { accept: "application/json" },
@@ -211,7 +216,12 @@ export default function InvoiceDetails({ params }) {
             "Content-Type": "application/json",
             accept: "application/json",
           },
-          body: JSON.stringify(data),
+          body: JSON.stringify({
+            InvoiceName: data.InvoiceName,
+            SupplierID: data.SupplierID,
+            Paid: data.Paid,
+            is_completed: data.is_completed,
+          }),
         }
       );
       if (!response.ok) throw new Error("فشل في تحديث الفاتورة");
@@ -225,30 +235,83 @@ export default function InvoiceDetails({ params }) {
   // معالجة حفظ التغييرات
   const handleSaveChanges = async () => {
     try {
-      // تحديث العناصر في الخادم
-      await Promise.all(
-        localItems.map((item) =>
-          item.InvoiceItemID
-            ? updateItemMutation.mutateAsync({
-                itemId: item.InvoiceItemID,
-                data: item,
-              })
-            : addItemMutation.mutateAsync(item)
-        )
-      );
+      // تجميع العناصر الجديدة
+      const newItems = localItems
+        .filter((item) => !item.InvoiceItemID)
+        .map((item) => ({
+          ProductID: item.ProductID,
+          Quantity: item.Quantity,
+          BuyPrice: item.BuyPrice,
+          SellPrice: item.SellPrice,
+        }));
 
-      // حذف العناصر التي لم تعد موجودة
+      // إرسال العناصر الجديدة في طلب واحد
+      if (newItems.length > 0) {
+        const response = await fetch(
+          `https://backend-v1-psi.vercel.app/invoices/${invoiceId}/items`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              accept: "application/json",
+            },
+            body: JSON.stringify(newItems),
+          }
+        );
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || "فشل في إضافة العناصر");
+        }
+      }
+
+      // تحديث العناصر الموجودة
+      const existingItems = localItems.filter((item) => item.InvoiceItemID);
+      for (const item of existingItems) {
+        const response = await fetch(
+          `https://backend-v1-psi.vercel.app/invoices/${invoiceId}/items/${item.InvoiceItemID}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              accept: "application/json",
+            },
+            body: JSON.stringify({
+              Quantity: item.Quantity,
+              BuyPrice: item.BuyPrice,
+              SellPrice: item.SellPrice,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || "فشل في تحديث العناصر");
+        }
+      }
+
+      // حذف العناصر التي تم إزالتها
       const itemsToDelete = invoice.items.filter(
         (item) =>
           !localItems.some(
             (localItem) => localItem.InvoiceItemID === item.InvoiceItemID
           )
       );
-      await Promise.all(
-        itemsToDelete.map((item) =>
-          deleteItemMutation.mutateAsync(item.InvoiceItemID)
-        )
-      );
+
+      for (const item of itemsToDelete) {
+        const response = await fetch(
+          `https://backend-v1-psi.vercel.app/invoices/${invoiceId}/items/${item.InvoiceItemID}`,
+          {
+            method: "DELETE",
+            headers: { accept: "application/json" },
+          }
+        );
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || "فشل في حذف العناصر");
+        }
+      }
 
       // تحديث الفاتورة بالإجمالي الجديد
       const newTotal = calculateTotal(localItems);
@@ -261,6 +324,7 @@ export default function InvoiceDetails({ params }) {
       setIsEditing(false);
     } catch (error) {
       console.error("Error saving changes:", error);
+      throw error;
     }
   };
 
@@ -621,12 +685,18 @@ export default function InvoiceDetails({ params }) {
                 <p className="text-sm text-gray-500">الحالة</p>
                 <span
                   className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    invoice?.Status === "paid"
+                    invoice?.Status === "Paid"
                       ? "bg-green-100 text-green-800"
-                      : "bg-yellow-100 text-yellow-800"
+                      : invoice?.Status === "Partially Paid"
+                      ? "bg-yellow-100 text-yellow-800"
+                      : "bg-red-100 text-red-800"
                   }`}
                 >
-                  {invoice?.Status === "paid" ? "مدفوعة" : "غير مدفوعة"}
+                  {invoice?.Status === "Paid"
+                    ? "مدفوعة"
+                    : invoice?.Status === "Partially Paid"
+                    ? "مدفوعة جزئياً"
+                    : "غير مدفوعة"}
                 </span>
               </div>
             </div>

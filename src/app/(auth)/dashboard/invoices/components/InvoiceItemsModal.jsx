@@ -48,10 +48,68 @@ export default function InvoiceItemsModal({
     setSellPrice("");
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSave(items);
-    onClose();
+  const handleSave = async () => {
+    try {
+      // تجميع كل العناصر الجديدة في مصفوفة واحدة
+      const newItems = items
+        .filter((item) => !item.InvoiceItemID)
+        .map((item) => ({
+          ProductID: item.ProductID,
+          Quantity: item.Quantity,
+          BuyPrice: item.BuyPrice,
+          SellPrice: item.SellPrice,
+        }));
+
+      // إرسال كل العناصر الجديدة في طلب واحد
+      if (newItems.length > 0) {
+        const response = await fetch(
+          `https://backend-v1-psi.vercel.app/invoices/${invoice.InvoiceID}/items`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              accept: "application/json",
+            },
+            body: JSON.stringify(newItems), // إرسال المصفوفة مباشرة
+          }
+        );
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || "فشل في إضافة العناصر");
+        }
+      }
+
+      // تحديث العناصر الموجودة
+      const existingItems = items.filter((item) => item.InvoiceItemID);
+      for (const item of existingItems) {
+        const response = await fetch(
+          `https://backend-v1-psi.vercel.app/invoices/${invoice.InvoiceID}/items/${item.InvoiceItemID}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              accept: "application/json",
+            },
+            body: JSON.stringify({
+              Quantity: item.Quantity,
+              BuyPrice: item.BuyPrice,
+              SellPrice: item.SellPrice,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || "فشل في تحديث العناصر");
+        }
+      }
+
+      onSave(items);
+    } catch (error) {
+      console.error("Error saving items:", error);
+      throw error;
+    }
   };
 
   return (
@@ -61,7 +119,7 @@ export default function InvoiceItemsModal({
       title={`تفاصيل الفاتورة - ${invoice?.InvoiceName}`}
       icon={FaBox}
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSave} className="space-y-6">
         {/* إضافة منتج جديد */}
         <div className="bg-gray-50 p-4 rounded-lg border">
           <h3 className="font-medium text-gray-900 mb-4">إضافة منتج</h3>

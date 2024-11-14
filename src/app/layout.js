@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { AuthProvider } from './providers/AuthProvider';
 import localFont from "next/font/local";
 import "./globals.css";
+import { Toaster } from 'react-hot-toast';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,6 +37,7 @@ export default function RootLayout({ children }) {
         <QueryClientProvider client={queryClient}>
           <AuthProvider>{children}</AuthProvider>
         </QueryClientProvider>
+        <Toaster position="top-center" />
       </body>
     </html>
   );
