@@ -8,10 +8,13 @@ export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
+    setError("");
 
     const formData = new URLSearchParams();
     formData.append("grant_type", "password");
@@ -35,14 +38,15 @@ export default function Login() {
       if (data.access_token) {
         const encryptedToken = encryptToken(data.access_token);
         localStorage.setItem("token", encryptedToken);
-
         document.cookie = `token=${data.access_token}; path=/; secure; samesite=strict`;
         router.push("/dashboard");
       } else {
-        setError("خطأ في تسجيل الدخول");
+        setError("خطأ في اسم المستخدم أو كلمة المرور");
       }
     } catch (err) {
-      setError("حدث خطأ في الاتصال");
+      setError("حدث خطأ في الاتصال بالخادم");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -59,14 +63,14 @@ export default function Login() {
           <p className="text-blue-200">لوحة تحكم المسؤول</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-2xl p-8">
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8">
           <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
             تسجيل الدخول
           </h2>
 
           {error && (
-            <div className="mb-4 p-4 rounded-lg bg-red-50 border-r-4 border-red-500">
-              <p className="text-red-600">{error}</p>
+            <div className="mb-6 p-4 rounded-lg bg-red-50 border-r-4 border-red-500">
+              <p className="text-red-600 text-sm">{error}</p>
             </div>
           )}
 
@@ -86,6 +90,7 @@ export default function Login() {
                   className="w-full pr-10 pl-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-gray-900"
                   required
                   placeholder="أدخل اسم المستخدم"
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -105,15 +110,24 @@ export default function Login() {
                   className="w-full pr-10 pl-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-gray-900"
                   required
                   placeholder="أدخل كلمة المرور"
+                  disabled={isLoading}
                 />
               </div>
             </div>
 
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-800 text-white py-3 rounded-lg font-bold hover:from-blue-700 hover:to-blue-900 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              disabled={isLoading}
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-800 text-white py-3 rounded-lg font-bold hover:from-blue-700 hover:to-blue-900 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              تسجيل الدخول
+              {isLoading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-5 h-5 border-t-2 border-white rounded-full animate-spin"></div>
+                  <span>جاري تسجيل الدخول...</span>
+                </div>
+              ) : (
+                "تسجيل الدخول"
+              )}
             </button>
           </form>
         </div>
