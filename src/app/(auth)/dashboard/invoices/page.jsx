@@ -10,6 +10,7 @@ import {
   FaBox,
   FaEye,
   FaPrint,
+  FaMoneyBill,
 } from "react-icons/fa";
 import Modal from "@/components/shared/Modal";
 import QueryWrapper from "@/components/shared/QueryWrapper";
@@ -19,6 +20,7 @@ import Notification from "@/components/shared/Notification";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import FilterDropdown from "./components/FilterDropdown";
 import InvoiceStats from "./components/InvoiceStats";
+import { showToast } from "@/utils/toast";
 
 export default function Invoices() {
   const queryClient = useQueryClient();
@@ -104,80 +106,67 @@ export default function Invoices() {
   // إضافة فاتورة جديدة
   const addMutation = useMutation({
     mutationFn: async (newInvoice) => {
-      // تحضير البيانات للإرسال
-      const invoiceData = {
-        InvoiceName: newInvoice.InvoiceName,
-        SupplierID: newInvoice.SupplierID,
-        Paid: Number(newInvoice.Paid || 0),
-        items: newInvoice.items.map((item) => ({
-          ProductID: item.ProductID,
-          Quantity: Number(item.Quantity),
-          BuyPrice: Number(item.BuyPrice),
-          SellPrice: Number(item.SellPrice),
-        })),
-      };
-
-      const response = await fetch(
-        "https://backend-v1-psi.vercel.app/invoices/",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            accept: "application/json",
-          },
-          body: JSON.stringify(invoiceData),
+      const toastId = showToast.loading("جاري إضافة الفاتورة...");
+      try {
+        const response = await fetch(
+          "https://backend-v1-psi.vercel.app/invoices/",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              accept: "application/json",
+            },
+            body: JSON.stringify(newInvoice),
+          }
+        );
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || "فشل في إضافة الفاتورة");
         }
-      );
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || "فشل في إضافة الفاتورة");
+        showToast.dismiss(toastId);
+        showToast.success("تم إضافة الفاتورة بنجاح");
+        return response.json();
+      } catch (error) {
+        showToast.dismiss(toastId);
+        showToast.error(error.message);
+        throw error;
       }
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries(["invoices"]);
       setIsModalOpen(false);
       resetForm();
-      setNotification({
-        show: true,
-        message: "تم إضافة الفاتورة بنجاح",
-        type: "success",
-      });
-    },
-    onError: (error) => {
-      setNotification({
-        show: true,
-        message: error.message,
-        type: "error",
-      });
     },
   });
 
   // تحديث فاتورة
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }) => {
-      const response = await fetch(
-        `https://backend-v1-psi.vercel.app/invoices/${id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            accept: "application/json",
-          },
-          body: JSON.stringify({
-            InvoiceName: data.InvoiceName,
-            SupplierID: data.SupplierID,
-            Paid: Number(data.Paid || 0),
-            is_completed: data.is_completed,
-          }),
+      const toastId = showToast.loading("جاري تحديث الفاتورة...");
+      try {
+        const response = await fetch(
+          `https://backend-v1-psi.vercel.app/invoices/${id}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              accept: "application/json",
+            },
+            body: JSON.stringify(data),
+          }
+        );
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || "فشل في تحديث الفاتورة");
         }
-      );
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || "فشل في تحديث الفاتورة");
+        showToast.dismiss(toastId);
+        showToast.success("تم تحديث الفاتورة بنجاح");
+        return response.json();
+      } catch (error) {
+        showToast.dismiss(toastId);
+        showToast.error(error.message);
+        throw error;
       }
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries(["invoices"]);
@@ -186,24 +175,63 @@ export default function Invoices() {
     },
   });
 
-  // حذف فتورة
+  // حذف فاتورة
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
-      const response = await fetch(
-        `https://backend-v1-psi.vercel.app/invoices/${id}`,
-        {
-          method: "DELETE",
-          headers: { accept: "application/json" },
+      const toastId = showToast.loading("جاري حذف الفاتورة...");
+      try {
+        const response = await fetch(
+          `https://backend-v1-psi.vercel.app/invoices/${id}`,
+          {
+            method: "DELETE",
+            headers: { accept: "application/json" },
+          }
+        );
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || "فشل في حذف الفاتورة");
         }
-      );
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || "فشل في حذف الفاتورة");
+        showToast.dismiss(toastId);
+        showToast.success("تم حذف الفاتورة بنجاح");
+      } catch (error) {
+        showToast.dismiss(toastId);
+        showToast.error(error.message);
+        throw error;
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries(["invoices"]);
+    onSuccess: () => queryClient.invalidateQueries(["invoices"]),
+  });
+
+  // إكمال الفاتورة
+  const completeMutation = useMutation({
+    mutationFn: async (id) => {
+      const toastId = showToast.loading("جاري إكمال الفاتورة...");
+      try {
+        const response = await fetch(
+          `https://backend-v1-psi.vercel.app/invoices/${id}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              accept: "application/json",
+            },
+            body: JSON.stringify({ is_completed: true }),
+          }
+        );
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || "فشل في إكمال الفاتورة");
+        }
+        showToast.dismiss(toastId);
+        showToast.success("تم إكمال الفاتورة بنجاح");
+        return response.json();
+      } catch (error) {
+        showToast.dismiss(toastId);
+        showToast.error(error.message);
+        throw error;
+      }
     },
+    onSuccess: () => queryClient.invalidateQueries(["invoices"]),
   });
 
   // Add delete handler
@@ -265,13 +293,16 @@ export default function Invoices() {
     try {
       // التحقق من المدخلات
       if (!formData.InvoiceName.trim()) {
-        throw new Error("رقم الفاتورة مطلوب");
+        showToast.error("رقم الفاتورة مطلوب");
+        return;
       }
       if (!formData.SupplierID) {
-        throw new Error("يجب اختيار المورد");
+        showToast.error("يجب اختيار المورد");
+        return;
       }
       if (!formData.items.length) {
-        throw new Error("يجب إضافة منتج واحد على الأقل");
+        showToast.error("يجب إضافة منتج واحد على الأقل");
+        return;
       }
 
       if (editingId) {
@@ -290,16 +321,89 @@ export default function Invoices() {
         await addMutation.mutateAsync(formData);
       }
     } catch (error) {
-      setNotification({
-        show: true,
-        message: error.message,
-        type: "error",
-      });
+      showToast.error(error.message);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // إضافة دالة calculateTotal
+  const calculateTotal = (items) => {
+    return items.reduce((sum, item) => {
+      const itemTotal = Number(item.Quantity) * Number(item.BuyPrice);
+      return sum + (itemTotal || 0);
+    }, 0);
+  };
+
+  // تحديث handleAddItem
+  const handleAddItem = () => {
+    if (
+      !newItem.ProductID ||
+      !newItem.Quantity ||
+      !newItem.BuyPrice ||
+      !newItem.SellPrice
+    ) {
+      showToast.error("جميع حقول المنتج مطلوبة");
+      return;
+    }
+
+    const product = products.find((p) => p.ProductID === newItem.ProductID);
+    const totalPrice = Number(newItem.Quantity) * Number(newItem.BuyPrice);
+
+    const updatedItems = [
+      ...formData.items,
+      {
+        ProductID: newItem.ProductID,
+        ProductName: product.ProductName,
+        Quantity: Number(newItem.Quantity),
+        BuyPrice: Number(newItem.BuyPrice),
+        SellPrice: Number(newItem.SellPrice),
+        TotalPrice: totalPrice,
+      },
+    ];
+
+    setFormData({
+      ...formData,
+      items: updatedItems,
+      TotalAmount: calculateTotal(updatedItems),
+    });
+
+    setNewItem({
+      ProductID: "",
+      Quantity: "",
+      BuyPrice: "",
+      SellPrice: "",
+    });
+
+    showToast.success("تم إضافة المنتج بنجاح");
+  };
+
+  // تحديث handleRemoveItem
+  const handleRemoveItem = (index) => {
+    const updatedItems = formData.items.filter((_, i) => i !== index);
+    setFormData({
+      ...formData,
+      items: updatedItems,
+      TotalAmount: calculateTotal(updatedItems),
+    });
+  };
+
+  // تحديث handleComplete
+  const handleComplete = async (id) => {
+    if (
+      window.confirm(
+        "هل أنت متأكد من إكمال هذه الفاتورة؟ لن يمكنك التراجع عن هذا الإجراء"
+      )
+    ) {
+      try {
+        await completeMutation.mutateAsync(id);
+      } catch (error) {
+        showToast.error(error.message);
+      }
+    }
+  };
+
+  // إضافة resetForm
   const resetForm = () => {
     setFormData({
       InvoiceName: "",
@@ -308,9 +412,22 @@ export default function Invoices() {
       items: [],
     });
     setEditingId(null);
+    setSelectedInvoice(null);
+    setNewItem({
+      ProductID: "",
+      Quantity: "",
+      BuyPrice: "",
+      SellPrice: "",
+    });
   };
 
+  // تحديث handleEdit
   const handleEdit = (invoice) => {
+    if (invoice.is_completed) {
+      showToast.error("لا يمكن تعديل الفاتورة المكتملة");
+      return;
+    }
+
     setFormData({
       InvoiceName: invoice.InvoiceName,
       SupplierID: invoice.SupplierID,
@@ -322,6 +439,32 @@ export default function Invoices() {
     });
     setEditingId(invoice.InvoiceID);
     setIsModalOpen(true);
+  };
+
+  // تحديث handleViewItems
+  const handleViewItems = (invoice) => {
+    if (invoice.is_completed) {
+      showToast.error("لا يمكن تعديل منتجات الفاتورة المكتملة");
+      return;
+    }
+    setSelectedInvoice(invoice);
+    setIsItemsModalOpen(true);
+  };
+
+  // تحديث handleSaveItems
+  const handleSaveItems = async (items) => {
+    const toastId = showToast.loading("جاري حفظ المنتجات...");
+    try {
+      await itemsMutation.mutateAsync({
+        invoiceId: selectedInvoice.InvoiceID,
+        items,
+      });
+      showToast.dismiss(toastId);
+      showToast.success("تم حفظ المنتجات بنجاح");
+    } catch (error) {
+      showToast.dismiss(toastId);
+      showToast.error(error.message);
+    }
   };
 
   // تحديث تصفية الفواتير
@@ -401,130 +544,6 @@ export default function Invoices() {
       setSelectedInvoice(null);
     },
   });
-
-  // Add handler for opening items modal
-  const handleViewItems = (invoice) => {
-    setSelectedInvoice(invoice);
-    setIsItemsModalOpen(true);
-  };
-
-  // Add handler for saving items
-  const handleSaveItems = (items) => {
-    itemsMutation.mutate({
-      invoiceId: selectedInvoice.InvoiceID,
-      items,
-    });
-  };
-
-  // تحديث handleAddItem
-  const handleAddItem = () => {
-    if (
-      !newItem.ProductID ||
-      !newItem.Quantity ||
-      !newItem.BuyPrice ||
-      !newItem.SellPrice
-    ) {
-      setNotification({
-        show: true,
-        message: "جميع حقول المنتج مطلوبة",
-        type: "error",
-      });
-      return;
-    }
-
-    const product = products.find((p) => p.ProductID === newItem.ProductID);
-    const totalPrice = Number(newItem.Quantity) * Number(newItem.BuyPrice);
-
-    setFormData({
-      ...formData,
-      items: [
-        ...formData.items,
-        {
-          ProductID: newItem.ProductID,
-          ProductName: product.ProductName, // للعرض فقط
-          Quantity: Number(newItem.Quantity),
-          BuyPrice: Number(newItem.BuyPrice),
-          SellPrice: Number(newItem.SellPrice),
-          TotalPrice: totalPrice, // للعرض فقط
-        },
-      ],
-    });
-
-    setNewItem({
-      ProductID: "",
-      Quantity: "",
-      BuyPrice: "",
-      SellPrice: "",
-    });
-  };
-
-  const handleRemoveItem = (index) => {
-    const removedItem = formData.items[index];
-    const newItems = formData.items.filter((_, i) => i !== index);
-    setFormData({
-      ...formData,
-      items: newItems,
-      TotalAmount: (
-        Number(formData.TotalAmount) - removedItem.TotalPrice
-      ).toString(),
-    });
-  };
-
-  // إضافة وظيفة لحساب الإجمالي
-  const calculateTotal = (items) => {
-    return items.reduce((sum, item) => {
-      const itemTotal = Number(item.Quantity) * Number(item.BuyPrice);
-      return sum + (itemTotal || 0);
-    }, 0);
-  };
-
-  // إضافة mutation لإكمال الفاتورة
-  const completeMutation = useMutation({
-    mutationFn: async (id) => {
-      const response = await fetch(
-        `https://backend-v1-psi.vercel.app/invoices/${id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            accept: "application/json",
-          },
-          body: JSON.stringify({
-            is_completed: true,
-          }),
-        }
-      );
-      if (!response.ok) throw new Error("فشل في إكمال الفاتورة");
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(["invoices"]);
-    },
-  });
-
-  // إضافة handler لإكمال الفاتورة
-  const handleComplete = async (id) => {
-    if (
-      window.confirm(
-        "هل أنت متأكد من إكمال هذه الفاتورة؟ لن يمكنك التراجع عن هذا الإجراء أو تعديل الفاتورة لاحقاً"
-      )
-    ) {
-      try {
-        await completeMutation.mutateAsync(id);
-        setNotification({
-          show: true,
-          message: "تم إكمال الفاتورة بنجاح",
-          type: "success",
-        });
-      } catch (error) {
-        setNotification({
-          show: true,
-          message: error.message,
-          type: "error",
-        });
-      }
-    }
-  };
 
   // إضافة مون الطباعة
   const PrintInvoice = ({ invoice }) => {
@@ -944,7 +963,7 @@ export default function Invoices() {
                   </div>
                 </div>
 
-                {/* جدول المنتجات المضافة */}
+                {/* جدول المنتجات امضافة */}
                 {formData.items.length > 0 && (
                   <div className="mt-4 bg-white rounded-lg border overflow-hidden">
                     <div className="max-h-64 overflow-y-auto">

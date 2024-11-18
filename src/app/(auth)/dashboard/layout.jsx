@@ -6,12 +6,12 @@ import {
   FaBox,
   FaChartLine,
   FaSignOutAlt,
-  FaShoppingCart,
   FaCog,
   FaHome,
   FaClipboardList,
   FaBars,
 } from "react-icons/fa";
+import { showToast } from "@/utils/toast";
 
 export default function DashboardLayout({ children }) {
   const router = useRouter();
@@ -22,6 +22,7 @@ export default function DashboardLayout({ children }) {
     localStorage.removeItem("token");
     document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
     router.push("/login");
+    showToast.success("تم تسجيل الخروج بنجاح");
   }, [router]);
 
   const menuItems = [

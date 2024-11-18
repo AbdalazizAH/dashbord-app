@@ -6,6 +6,7 @@ import ProductGrid from "./components/ProductGrid";
 import ProductTable from "./components/ProductTable";
 import ProductHeader from "./components/ProductHeader";
 import Pagination from "./components/Pagination";
+import { showToast } from "@/utils/toast";
 
 export default function Products() {
   const queryClient = useQueryClient();
@@ -61,111 +62,135 @@ export default function Products() {
   // إضافة منتج جديد
   const addMutation = useMutation({
     mutationFn: async (formDataToSend) => {
-      const queryParams = new URLSearchParams({
-        CategoryID: formData.CategoryID,
-        ProductName: formData.ProductName,
-        Description: formData.Description || "",
-        SKU: formData.SKU,
-        SellPrice: formData.SellPrice,
-      }).toString();
+      const toastId = showToast.loading("جاري إضافة المنتج...");
+      try {
+        const queryParams = new URLSearchParams({
+          CategoryID: formData.CategoryID,
+          ProductName: formData.ProductName,
+          Description: formData.Description || "",
+          SKU: formData.SKU,
+          SellPrice: formData.SellPrice,
+        }).toString();
 
-      const response = await fetch(
-        `https://backend-v1-psi.vercel.app/product/?${queryParams}`,
-        {
-          method: "POST",
-          headers: { accept: "application/json" },
-          body: formDataToSend,
+        const response = await fetch(
+          `https://backend-v1-psi.vercel.app/product/?${queryParams}`,
+          {
+            method: "POST",
+            headers: { accept: "application/json" },
+            body: formDataToSend,
+          }
+        );
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || "فشل في إضافة المنتج");
         }
-      );
-      if (!response.ok) throw new Error("فشل في إضافة المنتج");
-      return response.json();
+        showToast.dismiss(toastId);
+        showToast.success("تم إضافة المنتج بنجاح");
+        return response.json();
+      } catch (error) {
+        showToast.dismiss(toastId);
+        showToast.error(error.message);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries(["products"]);
       setIsModalOpen(false);
       resetForm();
     },
-    onError: (error) => setError(error.message),
   });
 
-  // تحديث منتج
+  // تحديث mutation تحديث المنتج
   const updateMutation = useMutation({
     mutationFn: async ({ id, formDataToSend }) => {
-      // إنشاء كائن للحقول المتغيرة
-      const updatedFields = {
-        CategoryID: formData.CategoryID, // مطلوب دائماً
-      };
+      const toastId = showToast.loading("جاري تحديث المنتج...");
+      try {
+        // إنشاء كائن للحقول المتغيرة
+        const updatedFields = {
+          CategoryID: formData.CategoryID, // مطلوب دائماً
+        };
 
-      // إضافة الحقول فقط إذا كانت غير فارغة
-      if (formData.ProductName?.trim()) {
-        updatedFields.ProductName = formData.ProductName.trim();
-      }
-
-      if (formData.Description?.trim()) {
-        updatedFields.Description = formData.Description.trim();
-      }
-
-      if (formData.SKU?.trim()) {
-        updatedFields.SKU = formData.SKU.trim();
-      }
-
-      if (formData.SellPrice) {
-        const price = Number(formData.SellPrice);
-        if (!isNaN(price) && price >= 0) {
-          updatedFields.SellPrice = price;
+        // إضافة الحقول فقط إذا كانت غير فارغة
+        if (formData.ProductName?.trim()) {
+          updatedFields.ProductName = formData.ProductName.trim();
         }
-      }
 
-      // إنشاء query params
-      const queryParams = new URLSearchParams(updatedFields).toString();
+        if (formData.Description?.trim()) {
+          updatedFields.Description = formData.Description.trim();
+        }
 
-      // إذا كان هناك صور للحذف
-      if (imagesToDelete.length > 0) {
-        formDataToSend.append("delete_image_ids", imagesToDelete.join(","));
-      }
+        if (formData.SKU?.trim()) {
+          updatedFields.SKU = formData.SKU.trim();
+        }
 
-      // التحقق من عدد الصور
-      const currentImagesCount = currentProduct.images?.length || 0;
-      const deletedImagesCount = imagesToDelete.length;
-      const newImagesCount = selectedFiles.length;
-      const totalImagesAfterUpdate =
-        currentImagesCount - deletedImagesCount + newImagesCount;
-
-      if (totalImagesAfterUpdate > 5) {
-        throw new Error("لا يمكن إضافة أكثر من 5 صور للمنتج");
-      }
-
-      // إضافة الصور الجديدة إلى FormData
-      if (selectedFiles.length > 0) {
-        selectedFiles.forEach((file) => {
-          // التحقق من حجم الملف (مثلاً: 5MB)
-          if (file.size > 5 * 1024 * 1024) {
-            throw new Error(
-              `الملف ${file.name} كبير جداً. الحد الأقصى هو 5 ميجابايت`
-            );
+        if (formData.SellPrice) {
+          const price = Number(formData.SellPrice);
+          if (!isNaN(price) && price >= 0) {
+            updatedFields.SellPrice = price;
           }
-          formDataToSend.append("files", file);
-        });
-      }
-
-      // إرسال الطلب
-      const response = await fetch(
-        `https://backend-v1-psi.vercel.app/product/${id}?${queryParams}`,
-        {
-          method: "PATCH",
-          headers: { accept: "application/json" },
-          body:
-            selectedFiles.length > 0 || imagesToDelete.length > 0
-              ? formDataToSend
-              : undefined,
         }
-      );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "فشل في تحديث المنتج");
+        // إنشاء query params
+        const queryParams = new URLSearchParams(updatedFields).toString();
+
+        // إنشاء FormData جديد
+        const formDataToSend = new FormData();
+
+        // إذا كان هناك صور للحذف
+        if (imagesToDelete.length > 0) {
+          formDataToSend.append("delete_image_ids", imagesToDelete.join(","));
+        }
+
+        // التحقق من عدد الصور
+        const currentImagesCount = currentProduct.images?.length || 0;
+        const deletedImagesCount = imagesToDelete.length;
+        const newImagesCount = selectedFiles.length;
+        const totalImagesAfterUpdate =
+          currentImagesCount - deletedImagesCount + newImagesCount;
+
+        if (totalImagesAfterUpdate > 5) {
+          throw new Error("لا يمكن إضافة أكثر من 5 صور للمنتج");
+        }
+
+        // إضافة الصور الجديدة إلى FormData
+        if (selectedFiles.length > 0) {
+          selectedFiles.forEach((file) => {
+            // التحقق من حجم الملف (مثلاً: 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+              throw new Error(
+                `الملف ${file.name} كبير جداً. الحد الأقصى هو 5 ميجابايت`
+              );
+            }
+            formDataToSend.append("files", file);
+          });
+        }
+
+        // إرسال الطلب
+        const response = await fetch(
+          `https://backend-v1-psi.vercel.app/product/${id}?${queryParams}`,
+          {
+            method: "PATCH",
+            headers: { accept: "application/json" },
+            body:
+              selectedFiles.length > 0 || imagesToDelete.length > 0
+                ? formDataToSend
+                : undefined,
+          }
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || "فشل في تحديث المنتج");
+        }
+
+        showToast.dismiss(toastId);
+        showToast.success("تم تحديث المنتج بنجاح");
+        return response.json();
+      } catch (error) {
+        showToast.dismiss(toastId);
+        showToast.error(error.message);
+        throw error;
       }
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries(["products"]);
@@ -180,17 +205,27 @@ export default function Products() {
   // حذف منتج
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
-      const response = await fetch(
-        `https://backend-v1-psi.vercel.app/product/${id}`,
-        {
-          method: "DELETE",
-          headers: { accept: "application/json" },
+      const toastId = showToast.loading("جاري حذف المنتج...");
+      try {
+        const response = await fetch(
+          `https://backend-v1-psi.vercel.app/product/${id}`,
+          {
+            method: "DELETE",
+            headers: { accept: "application/json" },
+          }
+        );
+        if (!response.ok) {
+          throw new Error("فشل في حذف المنتج");
         }
-      );
-      if (!response.ok) throw new Error("فشل في حذف المنتج");
+        showToast.dismiss(toastId);
+        showToast.success("تم حذف المنتج بنجاح");
+      } catch (error) {
+        showToast.dismiss(toastId);
+        showToast.error(error.message);
+        throw error;
+      }
     },
     onSuccess: () => queryClient.invalidateQueries(["products"]),
-    onError: (error) => setError(error.message),
   });
 
   const handleSubmit = async (e) => {
@@ -198,26 +233,26 @@ export default function Products() {
     setError("");
 
     try {
-      const formDataToSend = new FormData();
-
       if (editingId) {
+        // تحديث منتج موجود
+        const formDataToSend = new FormData();
         updateMutation.mutate({ id: editingId, formDataToSend });
       } else {
-        // التحقق من الحقول المطلوبة عند الإضافة
+        // إضافة منتج جديد
         if (!formData.ProductName?.trim()) {
-          setError("اسم المنتج مطلوب");
+          showToast.error("اسم المنتج مطلوب");
           return;
         }
         if (!formData.CategoryID) {
-          setError("الصنف مطلوب");
+          showToast.error("الصنف مطلوب");
           return;
         }
         if (!selectedFiles.length) {
-          setError("يجب إضافة صورة واحدة على الأقل للمنتج");
+          showToast.error("يجب إضافة صورة واحدة على الأقل للمنتج");
           return;
         }
 
-        // إضافة الصور
+        const formDataToSend = new FormData();
         selectedFiles.forEach((file) => {
           formDataToSend.append("files", file);
         });
@@ -230,6 +265,7 @@ export default function Products() {
         addMutation.mutate(formDataToSend);
       }
     } catch (error) {
+      showToast.error(error.message);
       setError(error.message);
     }
   };
@@ -251,6 +287,7 @@ export default function Products() {
     setMainImageIndex(0);
     setEditingId(null);
     setCurrentProduct(null);
+    setImagesToDelete([]);
   };
 
   const handleEdit = (product) => {

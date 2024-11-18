@@ -13,6 +13,7 @@ import {
 } from "react-icons/fa";
 import Modal from "@/components/shared/Modal";
 import QueryWrapper from "@/components/shared/QueryWrapper";
+import { showToast } from "@/utils/toast";
 
 export default function Suppliers() {
   const queryClient = useQueryClient();
@@ -54,70 +55,103 @@ export default function Suppliers() {
       supplier.Email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // إضافة مورد جديد
+  // إضافة ��ورد جديد
   const addMutation = useMutation({
     mutationFn: async (newSupplier) => {
-      const response = await fetch(
-        "https://backend-v1-psi.vercel.app/suppliers/",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            accept: "application/json",
-          },
-          body: JSON.stringify(newSupplier),
+      const toastId = showToast.loading("جاري إضافة المورد...");
+      try {
+        const response = await fetch(
+          "https://backend-v1-psi.vercel.app/suppliers/",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              accept: "application/json",
+            },
+            body: JSON.stringify(newSupplier),
+          }
+        );
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || "فشل في إضافة المورد");
         }
-      );
-      if (!response.ok) throw new Error("فشل في إضافة المورد");
-      return response.json();
+        showToast.dismiss(toastId);
+        showToast.success("تم إضافة المورد بنجاح");
+        return response.json();
+      } catch (error) {
+        showToast.dismiss(toastId);
+        showToast.error(error.message);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries(["suppliers"]);
       setIsModalOpen(false);
       resetForm();
     },
-    onError: (error) => setError(error.message),
   });
 
   // تحديث مورد
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }) => {
-      const response = await fetch(
-        `https://backend-v1-psi.vercel.app/suppliers/${id}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            accept: "application/json",
-          },
-          body: JSON.stringify(data),
+      const toastId = showToast.loading("جاري تحديث المورد...");
+      try {
+        const response = await fetch(
+          `https://backend-v1-psi.vercel.app/suppliers/${id}`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              accept: "application/json",
+            },
+            body: JSON.stringify(data),
+          }
+        );
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || "فشل في تحديث المورد");
         }
-      );
-      if (!response.ok) throw new Error("فشل في تحديث المورد");
-      return response.json();
+        showToast.dismiss(toastId);
+        showToast.success("تم تحديث المورد بنجاح");
+        return response.json();
+      } catch (error) {
+        showToast.dismiss(toastId);
+        showToast.error(error.message);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries(["suppliers"]);
       setIsModalOpen(false);
       resetForm();
     },
-    onError: (error) => setError(error.message),
   });
 
   // حذف مورد
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
-      const response = await fetch(
-        `https://backend-v1-psi.vercel.app/suppliers/${id}`,
-        {
-          method: "DELETE",
-          headers: { accept: "application/json" },
+      const toastId = showToast.loading("جاري حذف المورد...");
+      try {
+        const response = await fetch(
+          `https://backend-v1-psi.vercel.app/suppliers/${id}`,
+          {
+            method: "DELETE",
+            headers: { accept: "application/json" },
+          }
+        );
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || "فشل في حذف المورد");
         }
-      );
-      if (!response.ok) throw new Error("فشل في حذف المورد");
+        showToast.dismiss(toastId);
+        showToast.success("تم حذف المورد بنجاح");
+      } catch (error) {
+        showToast.dismiss(toastId);
+        showToast.error(error.message);
+        throw error;
+      }
     },
     onSuccess: () => queryClient.invalidateQueries(["suppliers"]),
-    onError: (error) => setError(error.message),
   });
 
   const handleSubmit = async (e) => {

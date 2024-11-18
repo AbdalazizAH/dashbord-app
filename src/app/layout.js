@@ -37,7 +37,7 @@ export default function RootLayout({ children }) {
         <QueryClientProvider client={queryClient}>
           <AuthProvider>{children}</AuthProvider>
         </QueryClientProvider>
-        <Toaster position="top-center" />
+        <Toaster position="top-center" reverseOrder={false} />
       </body>
     </html>
   );

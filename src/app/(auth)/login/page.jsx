@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { encryptToken } from "@/utils/encryption";
 import { FaUser, FaLock, FaShoppingCart } from "react-icons/fa";
+import { showToast } from "@/utils/toast";
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -13,17 +14,18 @@ export default function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    const toastId = showToast.loading("جاري تسجيل الدخول...");
     setIsLoading(true);
     setError("");
 
-    const formData = new URLSearchParams();
-    formData.append("grant_type", "password");
-    formData.append("username", username);
-    formData.append("password", password);
-    formData.append("client_id", "string");
-    formData.append("client_secret", "string");
-
     try {
+      const formData = new URLSearchParams();
+      formData.append("grant_type", "password");
+      formData.append("username", username);
+      formData.append("password", password);
+      formData.append("client_id", "string");
+      formData.append("client_secret", "string");
+
       const response = await fetch("https://backend-v1-psi.vercel.app/token", {
         method: "POST",
         headers: {
@@ -39,11 +41,17 @@ export default function Login() {
         const encryptedToken = encryptToken(data.access_token);
         localStorage.setItem("token", encryptedToken);
         document.cookie = `token=${data.access_token}; path=/; secure; samesite=strict`;
+        showToast.dismiss(toastId);
+        showToast.success("تم تسجيل الدخول بنجاح");
         router.push("/dashboard");
       } else {
+        showToast.dismiss(toastId);
+        showToast.error("خطأ في اسم المستخدم أو كلمة المرور");
         setError("خطأ في اسم المستخدم أو كلمة المرور");
       }
     } catch (err) {
+      showToast.dismiss(toastId);
+      showToast.error("حدث خطأ في الاتصال بالخادم");
       setError("حدث خطأ في الاتصال بالخادم");
     } finally {
       setIsLoading(false);

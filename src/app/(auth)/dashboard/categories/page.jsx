@@ -10,6 +10,7 @@ import {
 } from "react-icons/fa";
 import Modal from "@/components/shared/Modal";
 import QueryWrapper from "@/components/shared/QueryWrapper";
+import { showToast } from "@/utils/toast";
 
 export default function Categories() {
   const queryClient = useQueryClient();
@@ -20,6 +21,15 @@ export default function Categories() {
     Description: "",
   });
   const [editingId, setEditingId] = useState(null);
+
+  // إضافة دالة resetForm
+  const resetForm = () => {
+    setFormData({
+      CategoryName: "",
+      Description: "",
+    });
+    setEditingId(null);
+  };
 
   // جلب الأصناف مع عدد المنتجات
   const {
@@ -48,84 +58,99 @@ export default function Categories() {
   // إضافة صنف جديد
   const addMutation = useMutation({
     mutationFn: async (newCategory) => {
-      const response = await fetch(
-        "https://backend-v1-psi.vercel.app/categories/",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            accept: "application/json",
-          },
-          body: JSON.stringify(newCategory),
+      const toastId = showToast.loading("جاري إضافة الصنف...");
+      try {
+        const response = await fetch(
+          "https://backend-v1-psi.vercel.app/categories/",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              accept: "application/json",
+            },
+            body: JSON.stringify(newCategory),
+          }
+        );
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || "فشل في إضافة الصنف");
         }
-      );
-      if (!response.ok) {
-        throw new Error("فشل في إضافة الصنف");
+        showToast.dismiss(toastId);
+        showToast.success("تم إضافة الصنف بنجاح");
+        return response.json();
+      } catch (error) {
+        showToast.dismiss(toastId);
+        showToast.error(error.message);
+        throw error;
       }
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries(["categories-with-count"]);
       setIsModalOpen(false);
-      setFormData({ CategoryName: "", Description: "" });
-    },
-    onError: (error) => {
-      setError(error.message);
+      resetForm();
     },
   });
 
   // تعديل صنف
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }) => {
-      const response = await fetch(
-        `https://backend-v1-psi.vercel.app/categories/${id}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            accept: "application/json",
-          },
-          body: JSON.stringify(data),
+      const toastId = showToast.loading("جاري تحديث الصنف...");
+      try {
+        const response = await fetch(
+          `https://backend-v1-psi.vercel.app/categories/${id}`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              accept: "application/json",
+            },
+            body: JSON.stringify(data),
+          }
+        );
+        if (!response.ok) {
+          throw new Error("فشل في تحديث الصنف");
         }
-      );
-      if (!response.ok) {
-        throw new Error("فشل في تحديث الصنف");
+        showToast.dismiss(toastId);
+        showToast.success("تم تحديث الصنف بنجاح");
+        return response.json();
+      } catch (error) {
+        showToast.dismiss(toastId);
+        showToast.error(error.message);
+        throw error;
       }
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries(["categories-with-count"]);
       setIsModalOpen(false);
-      setFormData({ CategoryName: "", Description: "" });
-      setEditingId(null);
-    },
-    onError: (error) => {
-      setError(error.message);
+      resetForm();
     },
   });
 
   // حذف صنف
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
-      const response = await fetch(
-        `https://backend-v1-psi.vercel.app/categories/${id}`,
-        {
-          method: "DELETE",
-          headers: {
-            accept: "application/json",
-          },
+      const toastId = showToast.loading("جاري حذف الصنف...");
+      try {
+        const response = await fetch(
+          `https://backend-v1-psi.vercel.app/categories/${id}`,
+          {
+            method: "DELETE",
+            headers: { accept: "application/json" },
+          }
+        );
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || "فشل في حذف الصنف");
         }
-      );
-      if (!response.ok) {
-        throw new Error("فشل في حذف الصنف");
+        showToast.dismiss(toastId);
+        showToast.success("تم حذف الصنف بنجاح");
+      } catch (error) {
+        showToast.dismiss(toastId);
+        showToast.error(error.message);
+        throw error;
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries(["categories-with-count"]);
-    },
-    onError: (error) => {
-      setError(error.message);
-    },
+    onSuccess: () => queryClient.invalidateQueries(["categories-with-count"]),
   });
 
   const handleSubmit = async (e) => {
@@ -146,7 +171,7 @@ export default function Categories() {
   const handleEdit = (category) => {
     setFormData({
       CategoryName: category.CategoryName,
-      Description: category.Description,
+      Description: category.Description || "",
     });
     setEditingId(category.CategoryID);
     setIsModalOpen(true);
