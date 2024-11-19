@@ -11,6 +11,7 @@ import {
   FaEye,
   FaPrint,
   FaMoneyBill,
+  FaSpinner,
 } from "react-icons/fa";
 import Modal from "@/components/shared/Modal";
 import QueryWrapper from "@/components/shared/QueryWrapper";
@@ -53,6 +54,7 @@ export default function Invoices() {
     completion: "all",
     supplier: "all",
   });
+  const [loadingInvoiceId, setLoadingInvoiceId] = useState(null);
 
   // جلب الفواتير
   const {
@@ -769,15 +771,21 @@ export default function Invoices() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex gap-3">
                         <button
-                          onClick={() =>
+                          onClick={async () => {
+                            setLoadingInvoiceId(invoice.InvoiceID);
                             router.push(
                               `/dashboard/invoices/${invoice.InvoiceID}`
-                            )
-                          }
+                            );
+                          }}
                           className="text-gray-600 hover:text-gray-800 transition-colors duration-150"
                           title="عرض التفاصيل"
+                          disabled={loadingInvoiceId === invoice.InvoiceID}
                         >
-                          <FaEye size={18} />
+                          {loadingInvoiceId === invoice.InvoiceID ? (
+                            <FaSpinner className="animate-spin" size={18} />
+                          ) : (
+                            <FaEye size={18} />
+                          )}
                         </button>
                         {!invoice.is_completed && (
                           <>

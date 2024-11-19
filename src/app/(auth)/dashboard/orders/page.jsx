@@ -39,6 +39,7 @@ export default function Orders() {
     endDate: "",
   });
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [loadingOrderId, setLoadingOrderId] = useState(null);
 
   // جلب الطلبات
   const { data: orders = [], isLoading } = useQuery({
@@ -293,14 +294,20 @@ export default function Orders() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
-                        onClick={(e) => {
+                        onClick={async (e) => {
                           e.stopPropagation();
+                          setLoadingOrderId(order.OrderId);
                           router.push(`/dashboard/orders/${order.OrderId}`);
                         }}
                         className="text-blue-600 hover:text-blue-900"
                         title="عرض التفاصيل"
+                        disabled={loadingOrderId === order.OrderId}
                       >
-                        <FaEye />
+                        {loadingOrderId === order.OrderId ? (
+                          <FaSpinner className="animate-spin" />
+                        ) : (
+                          <FaEye />
+                        )}
                       </button>
                     </td>
                   </tr>
