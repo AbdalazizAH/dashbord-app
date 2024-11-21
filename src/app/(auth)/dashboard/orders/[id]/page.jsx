@@ -20,41 +20,41 @@ import QueryWrapper from "@/components/shared/QueryWrapper";
 import { showToast } from "@/utils/toast";
 
 const statusColors = {
-  pending: "bg-yellow-100 text-yellow-800",
-  processing: "bg-blue-100 text-blue-800",
-  completed: "bg-green-100 text-green-800",
-  cancelled: "bg-red-100 text-red-800",
+  PENDING: "bg-yellow-100 text-yellow-800",
+  PROCESSING: "bg-blue-100 text-blue-800",
+  COMPLETED: "bg-green-100 text-green-800",
+  CANCELLED: "bg-red-100 text-red-800",
 };
 
 const statusTranslations = {
-  pending: "قيد الانتظار",
-  processing: "قيد المعالجة",
-  completed: "مكتمل",
-  cancelled: "ملغي",
+  PENDING: "قيد الانتظار",
+  PROCESSING: "قيد المعالجة",
+  COMPLETED: "مكتمل",
+  CANCELLED: "ملغي",
 };
 
 // تحديث قائمة الحالات المتاحة
 const availableStatuses = {
-  pending: {
-    next: ["processing", "completed", "cancelled"],
+  PENDING: {
+    next: ["PROCESSING", "COMPLETED", "CANCELLED"],
     color: "bg-yellow-100 text-yellow-800",
     icon: FaSpinner,
     label: "قيد الانتظار",
   },
-  processing: {
-    next: ["pending", "completed", "cancelled"],
+  PROCESSING: {
+    next: ["PENDING", "COMPLETED", "CANCELLED"],
     color: "bg-blue-100 text-blue-800",
     icon: FaSpinner,
     label: "قيد المعالجة",
   },
-  completed: {
-    next: ["pending", "processing", "cancelled"],
+  COMPLETED: {
+    next: ["PENDING", "PROCESSING", "CANCELLED"],
     color: "bg-green-100 text-green-800",
     icon: FaCheck,
     label: "مكتمل",
   },
-  cancelled: {
-    next: ["pending", "processing", "completed"],
+  CANCELLED: {
+    next: ["PENDING", "PROCESSING", "COMPLETED"],
     color: "bg-red-100 text-red-800",
     icon: FaTimes,
     label: "ملغي",
@@ -204,11 +204,11 @@ export default function OrderDetails({ params }) {
                                 key={status}
                                 onClick={() => handleStatusChange(status)}
                                 className={`w-full text-right px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2 ${
-                                  status === "cancelled"
+                                  status === "CANCELLED"
                                     ? "text-red-600 hover:bg-red-50"
-                                    : status === "completed"
+                                    : status === "COMPLETED"
                                     ? "text-green-600 hover:bg-green-50"
-                                    : status === "processing"
+                                    : status === "PROCESSING"
                                     ? "text-blue-600 hover:bg-blue-50"
                                     : "text-yellow-600 hover:bg-yellow-50"
                                 }`}

@@ -16,17 +16,17 @@ import QueryWrapper from "@/components/shared/QueryWrapper";
 import { showToast } from "@/utils/toast";
 
 const statusColors = {
-  pending: "bg-yellow-100 text-yellow-800",
-  processing: "bg-blue-100 text-blue-800",
-  completed: "bg-green-100 text-green-800",
-  cancelled: "bg-red-100 text-red-800",
+  PENDING: "bg-yellow-100 text-yellow-800",
+  PROCESSING: "bg-blue-100 text-blue-800",
+  COMPLETED: "bg-green-100 text-green-800",
+  CANCELLED: "bg-red-100 text-red-800",
 };
 
 const statusTranslations = {
-  pending: "قيد الانتظار",
-  processing: "قيد المعالجة",
-  completed: "مكتمل",
-  cancelled: "ملغي",
+  PENDING: "قيد الانتظار",
+  PROCESSING: "قيد المعالجة",
+  COMPLETED: "مكتمل",
+  CANCELLED: "ملغي",
 };
 
 export default function Orders() {
@@ -76,15 +76,15 @@ export default function Orders() {
   // إحصائيات الطلبات
   const orderStats = {
     total: orders.length,
-    pending: orders.filter((order) => order.Status === "pending").length,
-    processing: orders.filter((order) => order.Status === "processing").length,
-    completed: orders.filter((order) => order.Status === "completed").length,
-    cancelled: orders.filter((order) => order.Status === "cancelled").length,
+    pending: orders.filter((order) => order.Status === "PENDING").length,
+    processing: orders.filter((order) => order.Status === "PROCESSING").length,
+    completed: orders.filter((order) => order.Status === "COMPLETED").length,
+    cancelled: orders.filter((order) => order.Status === "CANCELLED").length,
   };
 
   // حساب إجمالي المبيعات
   const totalSales = filteredOrders.reduce((sum, order) => {
-    if (order.Status !== "cancelled") {
+    if (order.Status !== "CANCELLED") {
       return sum + order.TotalAmount;
     }
     return sum;
@@ -176,10 +176,10 @@ export default function Orders() {
                     className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="all">جميع الحالات</option>
-                    <option value="pending">قيد الانتظار</option>
-                    <option value="processing">قيد المعالجة</option>
-                    <option value="completed">مكتملة</option>
-                    <option value="cancelled">ملغية</option>
+                    <option value="PENDING">قيد الانتظار</option>
+                    <option value="PROCESSING">قيد المعالجة</option>
+                    <option value="COMPLETED">مكتملة</option>
+                    <option value="CANCELLED">ملغية</option>
                   </select>
                 </div>
                 <div>
