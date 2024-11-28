@@ -6,10 +6,6 @@ const nextConfig = {
         }
     },
     images: {
-        domains: [
-            'backend-v1-psi.vercel.app',
-            'pyauuapknnwofmrymguv.supabase.co'
-        ],
         remotePatterns: [
             {
                 protocol: 'https',

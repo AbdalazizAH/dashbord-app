@@ -1,10 +1,8 @@
 "use client";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQueries } from "@tanstack/react-query";
 import {
   FaChartLine,
-  FaFileDownload,
-  FaCalendar,
   FaBox,
   FaMoneyBill,
   FaShoppingCart,
@@ -27,7 +25,6 @@ import {
 } from "chart.js";
 import { Line, Bar, Pie } from "react-chartjs-2";
 
-// تسجيل مكونات ChartJS
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -48,129 +45,192 @@ export default function Reports() {
     endDate: new Date().toISOString().split("T")[0],
   });
 
-  // جلب إحصائيات المبيعات
-  const { data: salesStats, isLoading: salesLoading } = useQuery({
-    queryKey: ["sales-stats", dateRange],
-    queryFn: async () => {
-      const response = await fetch(
-        `https://backend-v1-psi.vercel.app/reports/sales?start_date=${dateRange.startDate}&end_date=${dateRange.endDate}`,
-        {
-          headers: { accept: "application/json" },
-        }
-      );
-      if (!response.ok) showToast.error("فشل في جلب إحصائيات المبيعات");
-      return response.json();
-    },
+  // استخدام useQueries لجلب جميع البيانات بشكل متوازي
+  const results = useQueries({
+    queries: [
+      {
+        queryKey: ["orders"],
+        queryFn: async () => {
+          const response = await fetch(
+            "https://backend-v1-psi.vercel.app/orders/",
+            {
+              headers: { accept: "application/json" },
+            }
+          );
+          if (!response.ok) throw new Error("فشل في جلب الطلبات");
+          return response.json();
+        },
+      },
+      {
+        queryKey: ["products"],
+        queryFn: async () => {
+          const response = await fetch(
+            "https://backend-v1-psi.vercel.app/product/",
+            {
+              headers: { accept: "application/json" },
+            }
+          );
+          if (!response.ok) throw new Error("فشل في جلب المنتجات");
+          return response.json();
+        },
+      },
+      {
+        queryKey: ["suppliers"],
+        queryFn: async () => {
+          const response = await fetch(
+            "https://backend-v1-psi.vercel.app/suppliers/",
+            {
+              headers: { accept: "application/json" },
+            }
+          );
+          if (!response.ok) throw new Error("فشل في جلب الموردين");
+          return response.json();
+        },
+      },
+      {
+        queryKey: ["invoices"],
+        queryFn: async () => {
+          const response = await fetch(
+            "https://backend-v1-psi.vercel.app/invoices/",
+            {
+              headers: { accept: "application/json" },
+            }
+          );
+          if (!response.ok) throw new Error("فشل في جلب الفواتير");
+          return response.json();
+        },
+      },
+    ],
   });
 
-  // جلب إحصائيات المخزون
-  const { data: inventoryStats, isLoading: inventoryLoading } = useQuery({
-    queryKey: ["inventory-stats"],
-    queryFn: async () => {
-      const response = await fetch(
-        "https://backend-v1-psi.vercel.app/reports/inventory",
-        {
-          headers: { accept: "application/json" },
-        }
+  // التحقق من حالة التحميل والأخطاء
+  const isLoading = results.some((result) => result.isLoading);
+  const isError = results.some((result) => result.isError);
+  const error = results.find((result) => result.error)?.error;
+
+  // استخراج البيانات
+  const [
+    { data: orders = [] },
+    { data: products = [] },
+    { data: suppliers = [] },
+    { data: invoices = [] },
+  ] = results;
+
+  // إذا كان هناك خطأ، اعرض رسالة الخطأ
+  if (isError) {
+    return (
+      <div className="p-6 text-center text-red-600">
+        <p>حدث خطأ أثناء جلب البيانات</p>
+        <p className="text-sm">{error?.message}</p>
+      </div>
+    );
+  }
+
+  // حساب الإحصائيات بعد جلب البيانات
+  const stats = {
+    totalSales:
+      orders?.reduce((sum, order) => sum + (order.TotalAmount || 0), 0) || 0,
+    totalProducts: products?.length || 0,
+    totalInvoices: invoices?.length || 0,
+    totalSuppliers: suppliers?.length || 0,
+  };
+
+  // حساب المبيعات الشهرية
+  const monthlySales = orders?.reduce((acc, order) => {
+    const month = new Date(order.OrderDate).toLocaleString("ar-LY", {
+      month: "long",
+    });
+    acc[month] = (acc[month] || 0) + (order.TotalAmount || 0);
+    return acc;
+  }, {});
+
+  // حساب المنتجات الأكثر مبيعاً
+  const topProducts = products?.slice(0, 5).map((product) => ({
+    name: product.ProductName,
+    sales: product.SellPrice || 0,
+  }));
+
+  // حساب توزيع المخزون حسب الأصناف
+  const categoryDistribution = products?.reduce((acc, product) => {
+    const category = product.CategoryName || "غير مصنف";
+    acc[category] = (acc[category] || 0) + 1;
+    return acc;
+  }, {});
+
+  // حساب المنتات منخفضة المخزون
+  const lowStock =
+    products
+      ?.filter((product) => product.Quantity < 10)
+      .map((product) => ({
+        productId: product.ProductID,
+        productName: product.ProductName,
+        currentStock: product.Quantity,
+        minStock: 10,
+      })) || [];
+
+  // حساب حالة المدفوعات من الفواتير المتوفرة
+  const paymentStats = {
+    paid: invoices?.filter((inv) => inv.Status === "Paid").length || 0,
+    unpaid: invoices?.filter((inv) => inv.Status === "Unpaid").length || 0,
+    partiallyPaid:
+      invoices?.filter((inv) => inv.Status === "Partially Paid").length || 0,
+  };
+
+  // تحليل الطلبات حسب الحالة
+  const orderStatusAnalysis = orders?.reduce((acc, order) => {
+    acc[order.Status] = (acc[order.Status] || 0) + 1;
+    return acc;
+  }, {});
+
+  // تحليل المبيعات حسب الأيام
+  const dailySalesAnalysis = orders?.reduce((acc, order) => {
+    const day = new Date(order.OrderDate).toLocaleDateString("ar-LY", {
+      weekday: "long",
+    });
+    acc[day] = {
+      count: (acc[day]?.count || 0) + 1,
+      total: (acc[day]?.total || 0) + (order.TotalAmount || 0),
+    };
+    return acc;
+  }, {});
+
+  // تحليل أداء الموردين
+  const supplierPerformance = suppliers
+    ?.map((supplier) => {
+      const supplierInvoices = invoices?.filter(
+        (inv) => inv.SupplierID === supplier.SupplierID
       );
-      if (!response.ok) showToast.error("فشل في جلب إحصائيات المخزون");
-      return response.json();
-    },
-  });
+      return {
+        supplierName: supplier.SupplierName,
+        totalInvoices: supplierInvoices?.length || 0,
+        totalAmount:
+          supplierInvoices?.reduce(
+            (sum, inv) => sum + (inv.TotalAmount || 0),
+            0
+          ) || 0,
+        paidAmount:
+          supplierInvoices?.reduce((sum, inv) => sum + (inv.Paid || 0), 0) || 0,
+      };
+    })
+    .sort((a, b) => b.totalAmount - a.totalAmount)
+    .slice(0, 5);
 
-  // جلب إحصائيات الموردين
-  const { data: supplierStats, isLoading: suppliersLoading } = useQuery({
-    queryKey: ["supplier-stats"],
-    queryFn: async () => {
-      const response = await fetch(
-        "https://backend-v1-psi.vercel.app/reports/suppliers",
-        {
-          headers: { accept: "application/json" },
-        }
-      );
-      if (!response.ok) showToast.error("فشل في جلب إحصائيات الموردين");
-      return response.json();
-    },
-  });
-
-  // تقرير الأرباح
-  const { data: profitStats } = useQuery({
-    queryKey: ["profit-stats", dateRange],
-    queryFn: async () => {
-      const response = await fetch(
-        `https://backend-v1-psi.vercel.app/reports/profits?start_date=${dateRange.startDate}&end_date=${dateRange.endDate}`,
-        {
-          headers: { accept: "application/json" },
-        }
-      );
-      if (!response.ok) showToast.error("فشل في جلب إحصائيات الأرباح");
-      return response.json();
-    },
-  });
-
-  // تقرير المدفوعات
-  const { data: paymentStats } = useQuery({
-    queryKey: ["payment-stats", dateRange],
-    queryFn: async () => {
-      const response = await fetch(
-        `https://backend-v1-psi.vercel.app/reports/payments?start_date=${dateRange.startDate}&end_date=${dateRange.endDate}`,
-        {
-          headers: { accept: "application/json" },
-        }
-      );
-      if (!response.ok) showToast.error("فشل في جلب إحصائيات المدفوعات");
-      return response.json();
-    },
-  });
-
-  // تقرير حركة المخزون
-  const { data: stockMovement } = useQuery({
-    queryKey: ["stock-movement", dateRange],
-    queryFn: async () => {
-      const response = await fetch(
-        `https://backend-v1-psi.vercel.app/reports/stock-movement?start_date=${dateRange.startDate}&end_date=${dateRange.endDate}`,
-        {
-          headers: { accept: "application/json" },
-        }
-      );
-      if (!response.ok) showToast.error("فشل في جلب حركة المخزون");
-      return response.json();
-    },
-  });
-
-  // تصدير التقرير
-  const handleExport = async (reportType) => {
-    const toastId = showToast.loading("جاري تصدير التقرير...");
-    try {
-      const response = await fetch(
-        `https://backend-v1-psi.vercel.app/reports/export/${reportType}?start_date=${dateRange.startDate}&end_date=${dateRange.endDate}`,
-        {
-          headers: { accept: "application/json" },
-        }
-      );
-      if (!response.ok) showToast.error("فشل في تصدير التقرير");
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${reportType}-report.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-
-      showToast.dismiss(toastId);
-      showToast.success("تم تصدير التقرير بنجاح");
-    } catch (error) {
-      showToast.dismiss(toastId);
-      showToast.error(error.message);
-    }
+  // تحليل المخزون
+  const inventoryAnalysis = {
+    lowStock: products?.filter((p) => p.Quantity < 10)?.length || 0,
+    outOfStock: products?.filter((p) => p.Quantity === 0)?.length || 0,
+    totalValue:
+      products?.reduce(
+        (sum, p) => sum + (p.Quantity || 0) * (p.SellPrice || 0),
+        0
+      ) || 0,
+    averageValue:
+      products?.reduce((sum, p) => sum + (p.SellPrice || 0), 0) /
+      (products?.length || 1),
   };
 
   return (
-    <QueryWrapper
-      loading={salesLoading || inventoryLoading || suppliersLoading}
-    >
+    <QueryWrapper loading={isLoading}>
       <div className="p-6 max-w-[1400px] mx-auto">
         {/* رأس الصفحة */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
@@ -213,7 +273,7 @@ export default function Reports() {
               <div>
                 <p className="text-gray-500 text-sm">إجمالي المبيعات</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {salesStats?.totalSales?.toLocaleString("ar-LY")} د.ل
+                  {stats.totalSales.toLocaleString("ar-LY")} د.ل
                 </p>
               </div>
               <div className="p-3 bg-blue-100 rounded-full">
@@ -227,7 +287,7 @@ export default function Reports() {
               <div>
                 <p className="text-gray-500 text-sm">عدد المنتجات</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {inventoryStats?.totalProducts || 0}
+                  {stats.totalProducts}
                 </p>
               </div>
               <div className="p-3 bg-green-100 rounded-full">
@@ -241,7 +301,7 @@ export default function Reports() {
               <div>
                 <p className="text-gray-500 text-sm">عدد الفواتير</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {salesStats?.totalInvoices || 0}
+                  {stats.totalInvoices}
                 </p>
               </div>
               <div className="p-3 bg-purple-100 rounded-full">
@@ -255,7 +315,7 @@ export default function Reports() {
               <div>
                 <p className="text-gray-500 text-sm">عدد الموردين</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {supplierStats?.totalSuppliers || 0}
+                  {stats.totalSuppliers}
                 </p>
               </div>
               <div className="p-3 bg-orange-100 rounded-full">
@@ -265,7 +325,7 @@ export default function Reports() {
           </div>
         </div>
 
-        {/* الرسوم البانية */}
+        {/* الرسوم البيانية */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* مخطط المبيعات */}
           <div className="bg-white rounded-lg shadow-md p-6">
@@ -274,13 +334,11 @@ export default function Reports() {
             </h2>
             <Line
               data={{
-                labels:
-                  salesStats?.monthlySales?.map((item) => item.month) || [],
+                labels: Object.keys(monthlySales),
                 datasets: [
                   {
                     label: "المبيعات",
-                    data:
-                      salesStats?.monthlySales?.map((item) => item.total) || [],
+                    data: Object.values(monthlySales),
                     borderColor: "rgb(59, 130, 246)",
                     tension: 0.1,
                   },
@@ -300,16 +358,15 @@ export default function Reports() {
           {/* مخطط المنتجات الأكثر مبيعاً */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-lg font-bold text-gray-900 mb-4">
-              المنتجات الأكثر مبيعاً
+              المنتجات الأكثر مبيعً
             </h2>
             <Bar
               data={{
-                labels: salesStats?.topProducts?.map((item) => item.name) || [],
+                labels: topProducts.map((item) => item.name),
                 datasets: [
                   {
                     label: "المبيعات",
-                    data:
-                      salesStats?.topProducts?.map((item) => item.sales) || [],
+                    data: topProducts.map((item) => item.sales),
                     backgroundColor: "rgba(59, 130, 246, 0.5)",
                   },
                 ],
@@ -332,16 +389,10 @@ export default function Reports() {
             </h2>
             <Pie
               data={{
-                labels:
-                  inventoryStats?.categoryDistribution?.map(
-                    (item) => item.category
-                  ) || [],
+                labels: Object.keys(categoryDistribution),
                 datasets: [
                   {
-                    data:
-                      inventoryStats?.categoryDistribution?.map(
-                        (item) => item.count
-                      ) || [],
+                    data: Object.values(categoryDistribution),
                     backgroundColor: [
                       "#3B82F6",
                       "#10B981",
@@ -369,13 +420,6 @@ export default function Reports() {
               <h2 className="text-lg font-bold text-gray-900">
                 المنتجات منخفضة المخزون
               </h2>
-              <button
-                onClick={() => handleExport("low-stock")}
-                className="flex items-center gap-2 text-blue-600 hover:text-blue-700"
-              >
-                <FaFileDownload />
-                تصدير
-              </button>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
@@ -388,12 +432,12 @@ export default function Reports() {
                       المخزون الحالي
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      الحد الأدنى
+                      الحد ا��أدنى
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {inventoryStats?.lowStock?.map((item) => (
+                  {lowStock.map((item) => (
                     <tr key={item.productId}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {item.productName}
@@ -411,61 +455,10 @@ export default function Reports() {
             </div>
           </div>
 
-          {/* تقرير الأرباح */}
+          {/* توزيع المدفوعات */}
           <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center justify-between">
-              <span>تحليل الأرباح</span>
-              <button
-                onClick={() => handleExport("profits")}
-                className="text-blue-600 hover:text-blue-700"
-              >
-                <FaFileDownload />
-              </button>
-            </h2>
-            <Line
-              data={{
-                labels:
-                  profitStats?.monthlyProfits?.map((item) => item.month) || [],
-                datasets: [
-                  {
-                    label: "الأرباح",
-                    data:
-                      profitStats?.monthlyProfits?.map((item) => item.profit) ||
-                      [],
-                    borderColor: "rgb(34, 197, 94)",
-                    tension: 0.1,
-                  },
-                  {
-                    label: "التكاليف",
-                    data:
-                      profitStats?.monthlyProfits?.map((item) => item.cost) ||
-                      [],
-                    borderColor: "rgb(239, 68, 68)",
-                    tension: 0.1,
-                  },
-                ],
-              }}
-              options={{
-                responsive: true,
-                plugins: {
-                  legend: {
-                    position: "top",
-                  },
-                },
-              }}
-            />
-          </div>
-
-          {/* تقرير المدفوعات */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center justify-between">
-              <span>تحليل المدفوعات</span>
-              <button
-                onClick={() => handleExport("payments")}
-                className="text-blue-600 hover:text-blue-700"
-              >
-                <FaFileDownload />
-              </button>
+            <h2 className="text-lg font-bold text-gray-900 mb-4">
+              توزيع المدفوعات
             </h2>
             <Pie
               data={{
@@ -473,9 +466,9 @@ export default function Reports() {
                 datasets: [
                   {
                     data: [
-                      paymentStats?.paid || 0,
-                      paymentStats?.unpaid || 0,
-                      paymentStats?.partiallyPaid || 0,
+                      paymentStats.paid,
+                      paymentStats.unpaid,
+                      paymentStats.partiallyPaid,
                     ],
                     backgroundColor: [
                       "rgb(34, 197, 94)",
@@ -495,83 +488,38 @@ export default function Reports() {
               }}
             />
           </div>
+        </div>
 
-          {/* تقرير حركة المخزون */}
+        {/* تحليلات إضافية */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+          {/* تحليل الطلبات حسب الحالة */}
           <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center justify-between">
-              <span>حركة المخزون</span>
-              <button
-                onClick={() => handleExport("stock-movement")}
-                className="text-blue-600 hover:text-blue-700"
-              >
-                <FaFileDownload />
-              </button>
-            </h2>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      المنتج
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      الوارد
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      الصادر
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      الرصيد
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {stockMovement?.movements?.map((item, index) => (
-                    <tr key={index}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {item.productName}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600">
-                        +{item.incoming}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600">
-                        -{item.outgoing}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        {item.balance}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* تقرير أداء الموردين */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center justify-between">
-              <span>أداء الموردين</span>
-              <button
-                onClick={() => handleExport("supplier-performance")}
-                className="text-blue-600 hover:text-blue-700"
-              >
-                <FaFileDownload />
-              </button>
+            <h2 className="text-lg font-bold text-gray-900 mb-4">
+              تحليل الطلبات حسب الحالة
             </h2>
             <Bar
               data={{
-                labels:
-                  supplierStats?.performance?.map(
-                    (item) => item.supplierName
-                  ) || [],
+                labels: Object.keys(orderStatusAnalysis).map((status) =>
+                  status === "PENDING"
+                    ? "قيد الانتظار"
+                    : status === "PROCESSING"
+                    ? "قيد المعالجة"
+                    : status === "COMPLETED"
+                    ? "مكتمل"
+                    : status === "CANCELLED"
+                    ? "ملغي"
+                    : status
+                ),
                 datasets: [
                   {
-                    label: "قيمة المشتريات",
-                    data:
-                      supplierStats?.performance?.map(
-                        (item) => item.totalPurchases
-                      ) || [],
-                    backgroundColor: "rgba(59, 130, 246, 0.5)",
+                    label: "عدد الطلبات",
+                    data: Object.values(orderStatusAnalysis),
+                    backgroundColor: [
+                      "rgba(234, 179, 8, 0.5)",
+                      "rgba(59, 130, 246, 0.5)",
+                      "rgba(34, 197, 94, 0.5)",
+                      "rgba(239, 68, 68, 0.5)",
+                    ],
                   },
                 ],
               }}
@@ -585,60 +533,176 @@ export default function Reports() {
               }}
             />
           </div>
+
+          {/* تحليل المبيعات اليومية */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-4">
+              تحليل المبيعات حسب الأيام
+            </h2>
+            <Line
+              data={{
+                labels: Object.keys(dailySalesAnalysis),
+                datasets: [
+                  {
+                    label: "إجمالي المبيعات",
+                    data: Object.values(dailySalesAnalysis).map(
+                      (day) => day.total
+                    ),
+                    borderColor: "rgb(59, 130, 246)",
+                    yAxisID: "y1",
+                  },
+                  {
+                    label: "عدد الطلبات",
+                    data: Object.values(dailySalesAnalysis).map(
+                      (day) => day.count
+                    ),
+                    borderColor: "rgb(34, 197, 94)",
+                    yAxisID: "y2",
+                  },
+                ],
+              }}
+              options={{
+                responsive: true,
+                plugins: {
+                  legend: {
+                    position: "top",
+                  },
+                },
+                scales: {
+                  y1: {
+                    type: "linear",
+                    display: true,
+                    position: "left",
+                  },
+                  y2: {
+                    type: "linear",
+                    display: true,
+                    position: "right",
+                    grid: {
+                      drawOnChartArea: false,
+                    },
+                  },
+                },
+              }}
+            />
+          </div>
+
+          {/* أداء الموردين */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-4">
+              أفضل 5 موردين
+            </h2>
+            <div className="space-y-4">
+              {supplierPerformance.map((supplier, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+                >
+                  <div>
+                    <p className="font-medium text-gray-900">
+                      {supplier.supplierName}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {supplier.totalInvoices} فاتورة | نسبة السداد:{" "}
+                      {(
+                        (supplier.paidAmount / supplier.totalAmount) *
+                        100
+                      ).toFixed(1)}
+                      %
+                    </p>
+                  </div>
+                  <div className="text-lg font-bold text-blue-600">
+                    {supplier.totalAmount.toLocaleString("ar-LY")} د.ل
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* تحليل المخزون */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-4">
+              تحليل المخزون
+            </h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-red-50 rounded-lg">
+                <p className="text-sm text-red-600">منتجات نفذت</p>
+                <p className="text-2xl font-bold text-red-700">
+                  {inventoryAnalysis.outOfStock}
+                </p>
+              </div>
+              <div className="p-4 bg-yellow-50 rounded-lg">
+                <p className="text-sm text-yellow-600">مخزون منخفض</p>
+                <p className="text-2xl font-bold text-yellow-700">
+                  {inventoryAnalysis.lowStock}
+                </p>
+              </div>
+              <div className="p-4 bg-blue-50 rounded-lg col-span-2">
+                <p className="text-sm text-blue-600">قيمة المخزون</p>
+                <p className="text-2xl font-bold text-blue-700">
+                  {inventoryAnalysis.totalValue.toLocaleString("ar-LY")} د.ل
+                </p>
+                <p className="text-sm text-blue-500 mt-1">
+                  متوسط قيمة المنتج:{" "}
+                  {inventoryAnalysis.averageValue.toLocaleString("ar-LY")} د.ل
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* تقارير إضافية */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <button
-            onClick={() => handleExport("tax-report")}
-            className="flex items-center justify-center gap-2 p-4 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors"
-          >
-            <FaFileDownload />
-            التقرير الضريبي
-          </button>
-          <button
-            onClick={() => handleExport("product-movement")}
-            className="flex items-center justify-center gap-2 p-4 bg-pink-50 text-pink-600 rounded-lg hover:bg-pink-100 transition-colors"
-          >
-            <FaFileDownload />
-            حركة المنتجات
-          </button>
-          <button
-            onClick={() => handleExport("financial-summary")}
-            className="flex items-center justify-center gap-2 p-4 bg-yellow-50 text-yellow-600 rounded-lg hover:bg-yellow-100 transition-colors"
-          >
-            <FaFileDownload />
-            الملخص المالي
-          </button>
+        {/* رسالة عن عدم توفر التقارير التفصيلية */}
+        <div className="bg-yellow-50 p-4 rounded-lg text-yellow-800 text-center mb-6">
+          التقارير التفصيلية والتصدير غير متوفرة حالياً
         </div>
 
-        {/* أزرار تصدير التقارير */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">
-            تصدير التقارير
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button
-              onClick={() => handleExport("sales")}
-              className="flex items-center justify-center gap-2 p-4 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
-            >
-              <FaFileDownload />
-              تقرير المبيعات
-            </button>
-            <button
-              onClick={() => handleExport("inventory")}
-              className="flex items-center justify-center gap-2 p-4 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
-            >
-              <FaFileDownload />
-              تقرير المخزون
-            </button>
-            <button
-              onClick={() => handleExport("suppliers")}
-              className="flex items-center justify-center gap-2 p-4 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition-colors"
-            >
-              <FaFileDownload />
-              تقرير الموردين
-            </button>
+        {/* إحصائيات إضافية */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              معدل المبيعات
+            </h3>
+            <div className="text-3xl font-bold text-blue-600">
+              {(stats.totalSales / (orders?.length || 1)).toLocaleString(
+                "ar-LY",
+                {
+                  maximumFractionDigits: 2,
+                }
+              )}
+              <span className="text-sm text-gray-500 mr-2">د.ل / طلب</span>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              متوسط قيمة المنتج
+            </h3>
+            <div className="text-3xl font-bold text-green-600">
+              {(
+                products?.reduce(
+                  (acc, product) => acc + (product.SellPrice || 0),
+                  0
+                ) / (products?.length || 1)
+              ).toLocaleString("ar-LY", {
+                maximumFractionDigits: 2,
+              })}
+              <span className="text-sm text-gray-500 mr-2">د.ل</span>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              نسبة اكتمال الطلبات
+            </h3>
+            <div className="text-3xl font-bold text-purple-600">
+              {(
+                ((orders?.filter((order) => order.Status === "COMPLETED")
+                  ?.length || 0) /
+                  (orders?.length || 1)) *
+                100
+              ).toFixed(1)}
+              %
+            </div>
           </div>
         </div>
       </div>
