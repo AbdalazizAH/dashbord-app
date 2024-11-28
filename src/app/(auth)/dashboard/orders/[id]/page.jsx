@@ -61,6 +61,19 @@ const availableStatuses = {
   },
 };
 
+// Add new status configurations for items
+const itemStatusColors = {
+  AVAILABLE: "bg-green-100 text-green-800",
+  UNAVAILABLE: "bg-red-100 text-red-800",
+  NONE: "bg-gray-100 text-gray-800",
+};
+
+const itemStatusTranslations = {
+  AVAILABLE: "متوفر",
+  UNAVAILABLE: "غير متوفر",
+  NONE: "غير محدد",
+};
+
 export default function OrderDetails({ params }) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -108,6 +121,33 @@ export default function OrderDetails({ params }) {
     },
   });
 
+  // Add new mutation for updating item status
+  const updateItemStatusMutation = useMutation({
+    mutationFn: async ({ itemId, status }) => {
+      const toastId = showToast.loading("جاري تحديث حالة المنتج...");
+      try {
+        const response = await fetch(
+          `https://backend-v1-psi.vercel.app/orders/${orderId}/items/${itemId}/status?status=${status}`,
+          {
+            method: "PUT",
+            headers: { accept: "application/json" },
+          }
+        );
+        if (!response.ok) throw new Error("فشل في تحديث حالة المنتج");
+        showToast.dismiss(toastId);
+        showToast.success("تم تحديث حالة المنتج بنجاح");
+        return response.json();
+      } catch (error) {
+        showToast.dismiss(toastId);
+        showToast.error(error.message);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["order", orderId]);
+    },
+  });
+
   const handlePrint = () => {
     window.print();
   };
@@ -125,6 +165,17 @@ export default function OrderDetails({ params }) {
       updateStatusMutation.mutate(newStatus);
     }
     setShowStatusDropdown(false);
+  };
+
+  // Add handler for item status change
+  const handleItemStatusChange = (itemId, newStatus) => {
+    if (
+      window.confirm(
+        `هل أنت متأكد من تغيير حالة المنتج إلى ${itemStatusTranslations[newStatus]}؟`
+      )
+    ) {
+      updateItemStatusMutation.mutate({ itemId, status: newStatus });
+    }
   };
 
   return (
@@ -292,6 +343,9 @@ export default function OrderDetails({ params }) {
                         <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                           الإجمالي
                         </th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                          الحالة
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -311,6 +365,24 @@ export default function OrderDetails({ params }) {
                           </td>
                           <td className="px-6 py-4 font-medium">
                             {item.Total.toLocaleString("ar-LY")} د.ل
+                          </td>
+                          <td className="px-6 py-4">
+                            <select
+                              value={item.Status || "NONE"}
+                              onChange={(e) =>
+                                handleItemStatusChange(
+                                  item.OrderItemId,
+                                  e.target.value
+                                )
+                              }
+                              className={`px-3 py-1 rounded-full text-sm font-medium ${
+                                itemStatusColors[item.Status || "NONE"]
+                              }`}
+                            >
+                              <option value="NONE">غير محدد</option>
+                              <option value="AVAILABLE">متوفر</option>
+                              <option value="UNAVAILABLE">غير متوفر</option>
+                            </select>
                           </td>
                         </tr>
                       ))}
