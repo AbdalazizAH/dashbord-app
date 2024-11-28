@@ -1,12 +1,12 @@
 "use client";
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import QueryWrapper from "@/components/shared/QueryWrapper";
+import { Suspense, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { showToast } from "@/utils/toast";
 import { categoriesApi } from "@/utils/api/categories";
 import CategoryHeader from "./components/CategoryHeader";
-import CategoryTable from "./components/CategoryTable";
 import CategoryModal from "./components/CategoryModal";
+import CategoriesData from "./components/CategoriesData";
+import LoadingSpinner from "@/components/shared/LoadingSpinner";
 
 export default function Categories() {
   const queryClient = useQueryClient();
@@ -26,22 +26,7 @@ export default function Categories() {
     setEditingId(null);
   };
 
-  // جلب الأصناف مع عدد المنتجات
-  const {
-    data: categories = [],
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ["categories-with-count"],
-    queryFn: categoriesApi.getCategories,
-  });
-
-  // تصفية الأصناف حسب البحث
-  const filteredCategories = categories.filter((category) =>
-    category.CategoryName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // إضافة صنف جديد
+  // جضافة صنف
   const addMutation = useMutation({
     mutationFn: async (newCategory) => {
       const toastId = showToast.loading("جاري إضافة الصنف...");
@@ -57,7 +42,8 @@ export default function Categories() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(["categories-with-count"]);
+      queryClient.invalidateQueries(["categories"]);
+      queryClient.invalidateQueries(["categories-count"]);
       setIsModalOpen(false);
       resetForm();
     },
@@ -79,7 +65,8 @@ export default function Categories() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(["categories-with-count"]);
+      queryClient.invalidateQueries(["categories"]);
+      queryClient.invalidateQueries(["categories-count"]);
       setIsModalOpen(false);
       resetForm();
     },
@@ -99,7 +86,10 @@ export default function Categories() {
         throw error;
       }
     },
-    onSuccess: () => queryClient.invalidateQueries(["categories-with-count"]),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["categories"]);
+      queryClient.invalidateQueries(["categories-count"]);
+    },
   });
 
   const handleSubmit = async (e) => {
@@ -127,36 +117,36 @@ export default function Categories() {
   };
 
   return (
-    <QueryWrapper loading={isLoading} error={error}>
-      <div className="p-6 max-w-[1400px] mx-auto">
-        <CategoryHeader
-          onAddClick={() => {
-            setFormData({ CategoryName: "", Description: "" });
-            setEditingId(null);
-            setIsModalOpen(true);
-          }}
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-        />
+    <div className="p-6 max-w-[1400px] mx-auto">
+      <CategoryHeader
+        onAddClick={() => {
+          setFormData({ CategoryName: "", Description: "" });
+          setEditingId(null);
+          setIsModalOpen(true);
+        }}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+      />
 
-        <CategoryTable
-          categories={filteredCategories}
+      <Suspense fallback={<LoadingSpinner />}>
+        <CategoriesData
+          searchTerm={searchTerm}
           onEdit={handleEdit}
           onDelete={handleDelete}
         />
+      </Suspense>
 
-        <CategoryModal
-          isOpen={isModalOpen}
-          onClose={() => {
-            setIsModalOpen(false);
-            resetForm();
-          }}
-          formData={formData}
-          setFormData={setFormData}
-          handleSubmit={handleSubmit}
-          editingId={editingId}
-        />
-      </div>
-    </QueryWrapper>
+      <CategoryModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          resetForm();
+        }}
+        formData={formData}
+        setFormData={setFormData}
+        handleSubmit={handleSubmit}
+        editingId={editingId}
+      />
+    </div>
   );
 }

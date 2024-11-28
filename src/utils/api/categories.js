@@ -2,8 +2,17 @@ const BASE_URL = "https://backend-v1-psi.vercel.app";
 
 export const categoriesApi = {
     // جلب جميع الأصناف مع عدد المنتجات
-    getCategories: async () => {
+    getCategoriesCount: async () => {
         const response = await fetch(`${BASE_URL}/categories/product-count/`, {
+            headers: { accept: "application/json" },
+        });
+        if (!response.ok) throw new Error("فشل في جلب البيانات");
+        return response.json();
+    },
+
+    // جلب جميع الأصناف
+    getCategories: async () => {
+        const response = await fetch(`${BASE_URL}/categories/`, {
             headers: { accept: "application/json" },
         });
         if (!response.ok) throw new Error("فشل في جلب البيانات");
