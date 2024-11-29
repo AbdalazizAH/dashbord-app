@@ -8,6 +8,7 @@ import {
   FaTimes,
 } from "react-icons/fa";
 import Image from "next/image";
+import { showToast } from "@/utils/toast";
 
 export default function ProductModal({
   isOpen,
@@ -26,6 +27,21 @@ export default function ProductModal({
   handleDeleteImage,
 }) {
   if (!isOpen) return null;
+
+  const handleStatusChange = (value) => {
+    const isActive = value === "true";
+    const price = Number(formData.SellPrice);
+
+    if (isActive && (!price || price === 0)) {
+      showToast.error("لا يمكن تنشيط المنتج بسعر 0");
+      return;
+    }
+
+    setFormData({
+      ...formData,
+      IsActive: isActive,
+    });
+  };
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
@@ -145,6 +161,48 @@ export default function ProductModal({
                       <div className="text-xs text-gray-500 mt-1">
                         السعر الحالي:{" "}
                         {currentProduct.SellPrice.toLocaleString("ar-LY")} د.ل
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* حالة المنتج */}
+                <div className="space-y-2">
+                  <label className="block text-gray-700 font-medium">
+                    حالة المنتج
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={formData.IsActive ? "true" : "false"}
+                      onChange={(e) => handleStatusChange(e.target.value)}
+                      className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-gray-900 bg-white/70"
+                    >
+                      <option value="true">نشط</option>
+                      <option value="false">غير نشط</option>
+                    </select>
+                    <div className="mt-1">
+                      {formData.IsActive ? (
+                        <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full inline-block">
+                          المنتج سيظهر في المتجر
+                        </span>
+                      ) : (
+                        <span className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded-full inline-block">
+                          المنتج لن يظهر في المتجر
+                        </span>
+                      )}
+                    </div>
+                    {editingId && currentProduct?.IsActive !== undefined && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        الحالة الحالية:{" "}
+                        <span
+                          className={`font-medium ${
+                            currentProduct.IsActive
+                              ? "text-green-600"
+                              : "text-red-600"
+                          }`}
+                        >
+                          {currentProduct.IsActive ? "نشط" : "غير نشط"}
+                        </span>
                       </div>
                     )}
                   </div>

@@ -28,6 +28,16 @@ export const showToast = {
             }
         });
     },
+    info: (message) => {
+        toast.success(message, {
+            style: {
+                background: '#F59E0B',
+                color: '#fff',
+                direction: 'rtl'
+            },
+            duration: 3000,
+        });
+    },
     dismiss: (toastId) => {
         toast.dismiss(toastId);
     }
