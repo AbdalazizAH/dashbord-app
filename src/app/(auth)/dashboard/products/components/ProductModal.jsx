@@ -321,11 +321,14 @@ export default function ProductModal({
                     accept="image/*"
                     className="hidden"
                     id="image-upload"
-                    required={!editingId && selectedFiles.length === 0}
                   />
                   <label
                     htmlFor="image-upload"
-                    className="flex flex-col items-center justify-center cursor-pointer gap-3"
+                    className={`flex flex-col items-center justify-center cursor-pointer gap-3 ${
+                      !editingId && selectedFiles.length === 0
+                        ? "required-field"
+                        : ""
+                    }`}
                   >
                     <div className="p-4 bg-blue-50 rounded-full">
                       <FaImage className="text-blue-500 text-3xl" />
@@ -396,6 +399,15 @@ export default function ProductModal({
             </button>
             <button
               type="submit"
+              onClick={(e) => {
+                if (!editingId && selectedFiles.length === 0) {
+                  e.preventDefault();
+                  showToast.error("يجب إضافة صورة واحدة على الأقل للمنتج");
+                  document.getElementById("image-upload").focus();
+                  return;
+                }
+                handleSubmit(e);
+              }}
               className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-sm hover:shadow-md flex items-center gap-2 font-medium"
             >
               {editingId ? (
