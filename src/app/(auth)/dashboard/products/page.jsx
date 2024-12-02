@@ -1,6 +1,6 @@
 "use client";
 import { Suspense, useState } from "react";
-import { useProductForm } from "@/hooks/products/useProductForm";
+import { useProductForm } from "./hooks/useProductForm";
 import ProductModal from "./components/ProductModal";
 import ProductHeader from "./components/ProductHeader";
 import ProductData from "./components/ProductData";
