@@ -22,6 +22,9 @@ export default function ProductTable({ products, onEdit, onDelete }) {
                 السعر
               </th>
               <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                الحالة
+              </th>
+              <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                 SKU
               </th>
               <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -35,7 +38,13 @@ export default function ProductTable({ products, onEdit, onDelete }) {
                 product.images?.find((img) => img.IsMainImage) ||
                 product.images?.[0];
               return (
-                <tr key={product.ProductID} className="hover:bg-gray-50">
+                <tr
+                  key={product.ProductID}
+                  className={`hover:bg-gray-50 cursor-pointer ${
+                    !product.IsActive ? "bg-gray-50" : ""
+                  }`}
+                  onClick={() => onEdit(product)}
+                >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="relative h-16 w-16">
                       {mainImage ? (
@@ -53,26 +62,51 @@ export default function ProductTable({ products, onEdit, onDelete }) {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
+                    <div
+                      className="text-sm font-medium text-gray-900 truncate max-w-[200px]"
+                      title={product.ProductName}
+                    >
                       {product.ProductName}
                     </div>
-                    <div className="text-sm text-gray-500 line-clamp-1">
-                      {product.Description}
+                    <div
+                      className="text-sm text-gray-500 truncate max-w-[200px]"
+                      title={product.Description || "لا يوجد وصف"}
+                    >
+                      {product.Description || "لا يوجد وصف"}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {product.CategoryName}
+                    <div
+                      className="truncate max-w-[150px]"
+                      title={product.CategoryName}
+                    >
+                      {product.CategoryName}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
                     {product.SellPrice
                       ? `${product.SellPrice?.toLocaleString("ar-LY")} د.ل`
                       : "السعر غير محدد"}
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {product.IsActive ? (
+                      <span className="bg-green-100 text-green-800 text-xs font-medium px-3 py-1.5 rounded-full border border-green-200">
+                        نشط
+                      </span>
+                    ) : (
+                      <span className="bg-red-100 text-red-800 text-xs font-medium px-3 py-1.5 rounded-full border border-red-200">
+                        غير نشط
+                      </span>
+                    )}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {product.SKU}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <div className="flex gap-3">
+                    <div
+                      className="flex gap-3"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <button
                         onClick={() => onEdit(product)}
                         className="text-blue-600 hover:text-blue-800 transition-colors duration-150"

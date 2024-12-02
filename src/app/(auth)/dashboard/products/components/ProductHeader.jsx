@@ -1,6 +1,7 @@
 "use client";
 import { FaBox, FaPlus, FaSearch, FaTable, FaThLarge } from "react-icons/fa";
 
+// مكون رأس صفحة المنتجات - يحتوي على العنوان وأزرار التحكم في العرض والبحث
 export default function ProductHeader({
   viewMode,
   setViewMode,
@@ -10,12 +11,16 @@ export default function ProductHeader({
 }) {
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+      {/* القسم العلوي - العنوان وأزرار التحكم */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+        {/* عنوان الصفحة */}
         <div className="flex items-center gap-3">
           <FaBox className="text-blue-600 text-2xl" />
           <h1 className="text-2xl font-bold text-gray-900">إدارة المنتجات</h1>
         </div>
+        {/* أزرار التحكم */}
         <div className="flex items-center gap-4">
+          {/* أزرار تغيير نمط العرض */}
           <div className="flex bg-gray-100 rounded-lg p-1">
             <button
               onClick={() => setViewMode("grid")}
@@ -40,6 +45,7 @@ export default function ProductHeader({
               <FaTable />
             </button>
           </div>
+          {/* زر إضافة منتج جديد */}
           <button
             onClick={onAddNew}
             className="bg-blue-600 text-white px-6 py-2.5 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors duration-200 shadow-sm hover:shadow-md"
@@ -50,6 +56,7 @@ export default function ProductHeader({
         </div>
       </div>
 
+      {/* قسم البحث */}
       <div className="mt-6">
         <div className="relative">
           <FaSearch className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
