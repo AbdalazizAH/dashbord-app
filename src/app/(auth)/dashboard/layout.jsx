@@ -12,11 +12,13 @@ import {
   FaBars,
 } from "react-icons/fa";
 import { showToast } from "@/utils/toast";
+import { useAuth } from "@/app/providers/AuthProvider";
 
 export default function DashboardLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const { user } = useAuth();
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem("token");
@@ -38,7 +40,10 @@ export default function DashboardLayout({ children }) {
     { icon: <FaClipboardList />, title: "الطلبات", path: "/dashboard/orders" },
     { icon: <FaUsers />, title: "العملاء", path: "/dashboard/customers" },
     { icon: <FaChartLine />, title: "التقارير", path: "/dashboard/reports" },
-    { icon: <FaCog />, title: "الإعدادات", path: "/dashboard/settings" },
+    //proivt
+    ...(user?.role === "manager"
+      ? [{ icon: <FaCog />, title: "الإعدادات", path: "/dashboard/settings" }]
+      : []),
   ];
 
   return (
@@ -113,6 +118,20 @@ export default function DashboardLayout({ children }) {
               </h1>
               <div className="flex items-center gap-4">
                 <span className="text-gray-600">مرحباً بك</span>
+                <span className="text-gray-600">{user?.name}</span>
+                <span
+                  className={`px-2 py-1 text-xs font-medium rounded-full ${
+                    user?.role === "admin"
+                      ? "bg-purple-100 text-purple-700"
+                      : user?.role === "superadmin"
+                      ? "bg-red-100 text-red-700"
+                      : user?.role === "manager"
+                      ? "bg-blue-100 text-blue-700"
+                      : "bg-gray-100 text-gray-700"
+                  }`}
+                >
+                  {user?.role}
+                </span>
                 <button className="p-2 rounded-full hover:bg-gray-100">
                   <FaCog className="text-gray-600" />
                 </button>

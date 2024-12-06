@@ -18,6 +18,7 @@ import {
 } from "react-icons/fa";
 import { showToast } from "@/utils/toast";
 import QueryWrapper from "@/components/shared/QueryWrapper";
+import RoleGuard from "@/components/auth/RoleGuard";
 
 export default function Settings() {
   const queryClient = useQueryClient();
@@ -169,437 +170,443 @@ export default function Settings() {
   };
 
   return (
-    <QueryWrapper loading={isLoading}>
-      <div className="p-6 max-w-4xl mx-auto">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-blue-100 rounded-lg">
-            <FaCog className="text-blue-600 text-xl" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">إعدادات النظام</h1>
-        </div>
-
-        <div className="space-y-6">
-          {/* الإعدادات العامة */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-              <FaStore className="text-blue-600" />
-              إعدادات المتجر
-            </h2>
-            <form onSubmit={handleGeneralSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">
-                    اسم المتجر
-                  </label>
-                  <input
-                    type="text"
-                    value={generalSettings.storeName}
-                    onChange={(e) =>
-                      setGeneralSettings({
-                        ...generalSettings,
-                        storeName: e.target.value,
-                      })
-                    }
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="أدخل اسم المتجر"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">
-                    رقم الهاتف
-                  </label>
-                  <input
-                    type="tel"
-                    value={generalSettings.storePhone}
-                    onChange={(e) =>
-                      setGeneralSettings({
-                        ...generalSettings,
-                        storePhone: e.target.value,
-                      })
-                    }
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="أدخل رقم الهاتف"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">
-                    البريد الإلكتروني
-                  </label>
-                  <input
-                    type="email"
-                    value={generalSettings.storeEmail}
-                    onChange={(e) =>
-                      setGeneralSettings({
-                        ...generalSettings,
-                        storeEmail: e.target.value,
-                      })
-                    }
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="أدخل البريد الإلكتروني"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">
-                    العنوان
-                  </label>
-                  <input
-                    type="text"
-                    value={generalSettings.storeAddress}
-                    onChange={(e) =>
-                      setGeneralSettings({
-                        ...generalSettings,
-                        storeAddress: e.target.value,
-                      })
-                    }
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="أدخل عنوان المتجر"
-                  />
-                </div>
+    <RoleGuard allowedRoles={["manager"]}>
+      <div className="p-6 max-w-[1400px] mx-auto">
+        <QueryWrapper loading={isLoading}>
+          <div className="p-6 max-w-4xl mx-auto">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <FaCog className="text-blue-600 text-xl" />
               </div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                إعدادات النظام
+              </h1>
+            </div>
 
-              {/* إعدادات إضافية */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">
-                    العملة
-                  </label>
-                  <select
-                    value={generalSettings.currency}
-                    onChange={(e) =>
-                      setGeneralSettings({
-                        ...generalSettings,
-                        currency: e.target.value,
-                      })
-                    }
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="LYD">دينار ليبي</option>
-                    <option value="USD">دولار أمريكي</option>
-                    <option value="EUR">يورو</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">
-                    اللغة
-                  </label>
-                  <select
-                    value={generalSettings.language}
-                    onChange={(e) =>
-                      setGeneralSettings({
-                        ...generalSettings,
-                        language: e.target.value,
-                      })
-                    }
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="ar">العربية</option>
-                    <option value="en">English</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* شعار المتجر */}
-              <div>
-                <label className="block text-gray-700 font-medium mb-2">
-                  شعار المتجر
-                </label>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) =>
-                      setGeneralSettings({
-                        ...generalSettings,
-                        storeLogo: e.target.files[0],
-                      })
-                    }
-                    className="hidden"
-                    id="logo-upload"
-                  />
-                  <label
-                    htmlFor="logo-upload"
-                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors flex items-center gap-2"
-                  >
-                    <FaImage />
-                    اختيار صورة
-                  </label>
-                  {generalSettings.storeLogo && (
-                    <span className="text-sm text-gray-600">
-                      تم اختيار: {generalSettings.storeLogo.name}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* إعدادات الطباعة */}
-              <div className="border-t pt-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
-                  <FaPrint className="text-blue-600" />
-                  إعدادات الطباعة
-                </h3>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={printSettings.showLogo}
-                        onChange={(e) =>
-                          setPrintSettings({
-                            ...printSettings,
-                            showLogo: e.target.checked,
-                          })
-                        }
-                        className="rounded text-blue-600"
-                      />
-                      إظهار الشعار
-                    </label>
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={printSettings.showHeader}
-                        onChange={(e) =>
-                          setPrintSettings({
-                            ...printSettings,
-                            showHeader: e.target.checked,
-                          })
-                        }
-                        className="rounded text-blue-600"
-                      />
-                      إظهار الترويسة
-                    </label>
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={printSettings.showFooter}
-                        onChange={(e) =>
-                          setPrintSettings({
-                            ...printSettings,
-                            showFooter: e.target.checked,
-                          })
-                        }
-                        className="rounded text-blue-600"
-                      />
-                      إظهار التذييل
-                    </label>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-6">
+              {/* الإعدادات العامة */}
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                  <FaStore className="text-blue-600" />
+                  إعدادات المتجر
+                </h2>
+                <form onSubmit={handleGeneralSubmit} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-gray-700 text-sm mb-1">
-                        نص الترويسة
+                      <label className="block text-gray-700 font-medium mb-2">
+                        اسم المتجر
                       </label>
                       <input
                         type="text"
-                        value={printSettings.headerText}
+                        value={generalSettings.storeName}
                         onChange={(e) =>
-                          setPrintSettings({
-                            ...printSettings,
-                            headerText: e.target.value,
+                          setGeneralSettings({
+                            ...generalSettings,
+                            storeName: e.target.value,
                           })
                         }
-                        className="w-full p-2 border rounded-lg"
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="أدخل اسم المتجر"
                       />
                     </div>
                     <div>
-                      <label className="block text-gray-700 text-sm mb-1">
-                        نص التذييل
+                      <label className="block text-gray-700 font-medium mb-2">
+                        رقم الهاتف
+                      </label>
+                      <input
+                        type="tel"
+                        value={generalSettings.storePhone}
+                        onChange={(e) =>
+                          setGeneralSettings({
+                            ...generalSettings,
+                            storePhone: e.target.value,
+                          })
+                        }
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="أدخل رقم الهاتف"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gray-700 font-medium mb-2">
+                        البريد الإلكتروني
+                      </label>
+                      <input
+                        type="email"
+                        value={generalSettings.storeEmail}
+                        onChange={(e) =>
+                          setGeneralSettings({
+                            ...generalSettings,
+                            storeEmail: e.target.value,
+                          })
+                        }
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="أدخل البريد الإلكتروني"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gray-700 font-medium mb-2">
+                        العنوان
                       </label>
                       <input
                         type="text"
-                        value={printSettings.footerText}
+                        value={generalSettings.storeAddress}
                         onChange={(e) =>
-                          setPrintSettings({
-                            ...printSettings,
-                            footerText: e.target.value,
+                          setGeneralSettings({
+                            ...generalSettings,
+                            storeAddress: e.target.value,
                           })
                         }
-                        className="w-full p-2 border rounded-lg"
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="أدخل عنوان المتجر"
                       />
                     </div>
                   </div>
-                </div>
-              </div>
 
-              {/* إعدادات الإشعارات */}
-              <div className="border-t pt-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
-                  <FaBell className="text-blue-600" />
-                  إعدادات الإشعارات
-                </h3>
-                <div className="space-y-4">
-                  <div className="flex flex-wrap gap-4">
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={notificationSettings.lowStockNotification}
+                  {/* إعدادات إضافية */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-gray-700 font-medium mb-2">
+                        العملة
+                      </label>
+                      <select
+                        value={generalSettings.currency}
                         onChange={(e) =>
-                          setNotificationSettings({
-                            ...notificationSettings,
-                            lowStockNotification: e.target.checked,
+                          setGeneralSettings({
+                            ...generalSettings,
+                            currency: e.target.value,
                           })
                         }
-                        className="rounded text-blue-600"
-                      />
-                      تنبيهات المخزون المنخفض
-                    </label>
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={notificationSettings.orderNotification}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="LYD">دينار ليبي</option>
+                        <option value="USD">دولار أمر��كي</option>
+                        <option value="EUR">يورو</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-gray-700 font-medium mb-2">
+                        اللغة
+                      </label>
+                      <select
+                        value={generalSettings.language}
                         onChange={(e) =>
-                          setNotificationSettings({
-                            ...notificationSettings,
-                            orderNotification: e.target.checked,
+                          setGeneralSettings({
+                            ...generalSettings,
+                            language: e.target.value,
                           })
                         }
-                        className="rounded text-blue-600"
-                      />
-                      تنبيهات الطلبات الجديدة
-                    </label>
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={notificationSettings.emailNotification}
-                        onChange={(e) =>
-                          setNotificationSettings({
-                            ...notificationSettings,
-                            emailNotification: e.target.checked,
-                          })
-                        }
-                        className="rounded text-blue-600"
-                      />
-                      تنبيهات البريد الإلكتروني
-                    </label>
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="ar">العربية</option>
+                        <option value="en">English</option>
+                      </select>
+                    </div>
                   </div>
+
+                  {/* شعار المتجر */}
                   <div>
-                    <label className="block text-gray-700 text-sm mb-1">
-                      حد المخزون المنخفض
+                    <label className="block text-gray-700 font-medium mb-2">
+                      شعار المتجر
                     </label>
-                    <input
-                      type="number"
-                      value={notificationSettings.lowStockThreshold}
-                      onChange={(e) =>
-                        setNotificationSettings({
-                          ...notificationSettings,
-                          lowStockThreshold: parseInt(e.target.value),
-                        })
-                      }
-                      className="w-full p-2 border rounded-lg"
-                      min="0"
-                    />
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) =>
+                          setGeneralSettings({
+                            ...generalSettings,
+                            storeLogo: e.target.files[0],
+                          })
+                        }
+                        className="hidden"
+                        id="logo-upload"
+                      />
+                      <label
+                        htmlFor="logo-upload"
+                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors flex items-center gap-2"
+                      >
+                        <FaImage />
+                        اختيار صورة
+                      </label>
+                      {generalSettings.storeLogo && (
+                        <span className="text-sm text-gray-600">
+                          تم اختيار: {generalSettings.storeLogo.name}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </div>
 
-              {/* إعدادات الضرائب والرسوم */}
-              <div className="border-t pt-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
-                  <FaMoneyBillWave className="text-blue-600" />
-                  إعدادات الضرائب والرسوم
-                </h3>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={taxSettings.enableTax}
-                        onChange={(e) =>
-                          setTaxSettings({
-                            ...taxSettings,
-                            enableTax: e.target.checked,
-                          })
-                        }
-                        className="rounded text-blue-600"
-                      />
-                      تفعيل الضريبة
-                    </label>
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={taxSettings.enableServiceCharge}
-                        onChange={(e) =>
-                          setTaxSettings({
-                            ...taxSettings,
-                            enableServiceCharge: e.target.checked,
-                          })
-                        }
-                        className="rounded text-blue-600"
-                      />
-                      تفعيل رسوم الخدمة
-                    </label>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-gray-700 text-sm mb-1">
-                        نسبة الضريبة (%)
-                      </label>
-                      <input
-                        type="number"
-                        value={taxSettings.taxRate}
-                        onChange={(e) =>
-                          setTaxSettings({
-                            ...taxSettings,
-                            taxRate: parseFloat(e.target.value),
-                          })
-                        }
-                        className="w-full p-2 border rounded-lg"
-                        min="0"
-                        max="100"
-                        step="0.1"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-gray-700 text-sm mb-1">
-                        الرقم الضريبي
-                      </label>
-                      <input
-                        type="text"
-                        value={taxSettings.taxNumber}
-                        onChange={(e) =>
-                          setTaxSettings({
-                            ...taxSettings,
-                            taxNumber: e.target.value,
-                          })
-                        }
-                        className="w-full p-2 border rounded-lg"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-gray-700 text-sm mb-1">
-                        نسبة رسوم الخدمة (%)
-                      </label>
-                      <input
-                        type="number"
-                        value={taxSettings.serviceChargeRate}
-                        onChange={(e) =>
-                          setTaxSettings({
-                            ...taxSettings,
-                            serviceChargeRate: parseFloat(e.target.value),
-                          })
-                        }
-                        className="w-full p-2 border rounded-lg"
-                        min="0"
-                        max="100"
-                        step="0.1"
-                      />
+                  {/* إعدادات الطباعة */}
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+                      <FaPrint className="text-blue-600" />
+                      إعدادات الطباعة
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-4">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={printSettings.showLogo}
+                            onChange={(e) =>
+                              setPrintSettings({
+                                ...printSettings,
+                                showLogo: e.target.checked,
+                              })
+                            }
+                            className="rounded text-blue-600"
+                          />
+                          إظهار الشعار
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={printSettings.showHeader}
+                            onChange={(e) =>
+                              setPrintSettings({
+                                ...printSettings,
+                                showHeader: e.target.checked,
+                              })
+                            }
+                            className="rounded text-blue-600"
+                          />
+                          إظهار الترويسة
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={printSettings.showFooter}
+                            onChange={(e) =>
+                              setPrintSettings({
+                                ...printSettings,
+                                showFooter: e.target.checked,
+                              })
+                            }
+                            className="rounded text-blue-600"
+                          />
+                          إظهار التذييل
+                        </label>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-gray-700 text-sm mb-1">
+                            نص الترويسة
+                          </label>
+                          <input
+                            type="text"
+                            value={printSettings.headerText}
+                            onChange={(e) =>
+                              setPrintSettings({
+                                ...printSettings,
+                                headerText: e.target.value,
+                              })
+                            }
+                            className="w-full p-2 border rounded-lg"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-gray-700 text-sm mb-1">
+                            نص التذييل
+                          </label>
+                          <input
+                            type="text"
+                            value={printSettings.footerText}
+                            onChange={(e) =>
+                              setPrintSettings({
+                                ...printSettings,
+                                footerText: e.target.value,
+                              })
+                            }
+                            className="w-full p-2 border rounded-lg"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
 
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-                >
-                  <FaSave />
-                  حفظ جميع الإعدادات
-                </button>
+                  {/* إعدادات الإشعارات */}
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+                      <FaBell className="text-blue-600" />
+                      إعدادات الإشعارات
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="flex flex-wrap gap-4">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={notificationSettings.lowStockNotification}
+                            onChange={(e) =>
+                              setNotificationSettings({
+                                ...notificationSettings,
+                                lowStockNotification: e.target.checked,
+                              })
+                            }
+                            className="rounded text-blue-600"
+                          />
+                          تنبيهات المخزون المنخفض
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={notificationSettings.orderNotification}
+                            onChange={(e) =>
+                              setNotificationSettings({
+                                ...notificationSettings,
+                                orderNotification: e.target.checked,
+                              })
+                            }
+                            className="rounded text-blue-600"
+                          />
+                          تنبيهات الطلبات الجديدة
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={notificationSettings.emailNotification}
+                            onChange={(e) =>
+                              setNotificationSettings({
+                                ...notificationSettings,
+                                emailNotification: e.target.checked,
+                              })
+                            }
+                            className="rounded text-blue-600"
+                          />
+                          تنبيهات البريد الإلكتروني
+                        </label>
+                      </div>
+                      <div>
+                        <label className="block text-gray-700 text-sm mb-1">
+                          حد المخزون المنخفض
+                        </label>
+                        <input
+                          type="number"
+                          value={notificationSettings.lowStockThreshold}
+                          onChange={(e) =>
+                            setNotificationSettings({
+                              ...notificationSettings,
+                              lowStockThreshold: parseInt(e.target.value),
+                            })
+                          }
+                          className="w-full p-2 border rounded-lg"
+                          min="0"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* إعدادات الضرائب والرسوم */}
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+                      <FaMoneyBillWave className="text-blue-600" />
+                      إعدادات الضرائب والرسوم
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-4">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={taxSettings.enableTax}
+                            onChange={(e) =>
+                              setTaxSettings({
+                                ...taxSettings,
+                                enableTax: e.target.checked,
+                              })
+                            }
+                            className="rounded text-blue-600"
+                          />
+                          تفعيل الضريبة
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={taxSettings.enableServiceCharge}
+                            onChange={(e) =>
+                              setTaxSettings({
+                                ...taxSettings,
+                                enableServiceCharge: e.target.checked,
+                              })
+                            }
+                            className="rounded text-blue-600"
+                          />
+                          تفعيل رسوم الخدمة
+                        </label>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-gray-700 text-sm mb-1">
+                            نسبة الضريبة (%)
+                          </label>
+                          <input
+                            type="number"
+                            value={taxSettings.taxRate}
+                            onChange={(e) =>
+                              setTaxSettings({
+                                ...taxSettings,
+                                taxRate: parseFloat(e.target.value),
+                              })
+                            }
+                            className="w-full p-2 border rounded-lg"
+                            min="0"
+                            max="100"
+                            step="0.1"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-gray-700 text-sm mb-1">
+                            الرقم الضريبي
+                          </label>
+                          <input
+                            type="text"
+                            value={taxSettings.taxNumber}
+                            onChange={(e) =>
+                              setTaxSettings({
+                                ...taxSettings,
+                                taxNumber: e.target.value,
+                              })
+                            }
+                            className="w-full p-2 border rounded-lg"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-gray-700 text-sm mb-1">
+                            نسبة رسوم الخدمة (%)
+                          </label>
+                          <input
+                            type="number"
+                            value={taxSettings.serviceChargeRate}
+                            onChange={(e) =>
+                              setTaxSettings({
+                                ...taxSettings,
+                                serviceChargeRate: parseFloat(e.target.value),
+                              })
+                            }
+                            className="w-full p-2 border rounded-lg"
+                            min="0"
+                            max="100"
+                            step="0.1"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                    >
+                      <FaSave />
+                      حفظ جميع الإعدادات
+                    </button>
+                  </div>
+                </form>
               </div>
-            </form>
+            </div>
           </div>
-        </div>
+        </QueryWrapper>
       </div>
-    </QueryWrapper>
+    </RoleGuard>
   );
 }

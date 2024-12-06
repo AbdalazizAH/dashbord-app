@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { encryptToken } from "@/utils/encryption";
 import { FaUser, FaLock, FaShoppingCart } from "react-icons/fa";
 import { showToast } from "@/utils/toast";
+import { useAuth } from "@/app/providers/AuthProvider";
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -11,6 +12,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const { login } = useAuth();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -43,6 +45,7 @@ export default function Login() {
         document.cookie = `token=${data.access_token}; path=/; secure; samesite=strict`;
         showToast.dismiss(toastId);
         showToast.success("تم تسجيل الدخول بنجاح");
+        await login(data.access_token);
         router.push("/dashboard");
       } else {
         showToast.dismiss(toastId);

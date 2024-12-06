@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server';
 
-export function middleware(request) {
+// تحديد المسارات المحمية وأدوار المستخدمين المسموح لهم
+const protectedRoutes = {
+    "/dashboard/settings": ["manager"],
+    "/dashboard/reports": ["manager", "admin"],
+    // يمكنك إضافة المزيد من المسارات المحمية هنا
+};
+
+export async function middleware(request) {
     // CSRF token check
     if (request.method !== 'GET') {
         const csrfToken = request.cookies.get('XSRF-TOKEN')?.value;
@@ -19,14 +26,52 @@ export function middleware(request) {
         }
     }
 
+    const token = request.cookies.get("token")?.value;
+    const path = request.nextUrl.pathname;
+
     // Authentication check for dashboard
     if (request.nextUrl.pathname.startsWith('/dashboard')) {
-        const token = request.cookies.get('token')?.value;
-
         if (!token) {
             const url = new URL('/login', request.url);
             url.searchParams.set('from', request.nextUrl.pathname);
             return NextResponse.redirect(url);
+        }
+    }
+
+    // Role-based protection check
+    const isProtectedRoute = Object.keys(protectedRoutes).some(route =>
+        path.startsWith(route)
+    );
+
+    if (isProtectedRoute && token) {
+        try {
+            const response = await fetch(
+                "https://backend-v1-psi.vercel.app/dashboard/users/me",
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        accept: "application/json",
+                    },
+                }
+            );
+
+            if (!response.ok) {
+                return NextResponse.redirect(new URL("/login", request.url));
+            }
+
+            const userData = await response.json();
+            const userRole = userData.role;
+
+            const allowedRoles = Object.entries(protectedRoutes).find(([route]) =>
+                path.startsWith(route)
+            )?.[1];
+
+            if (allowedRoles && !allowedRoles.includes(userRole)) {
+                return NextResponse.redirect(new URL("/dashboard", request.url));
+            }
+        } catch (error) {
+            console.error("Auth check failed:", error);
+            return NextResponse.redirect(new URL("/login", request.url));
         }
     }
 

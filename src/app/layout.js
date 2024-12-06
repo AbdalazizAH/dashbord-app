@@ -13,8 +13,8 @@ const queryClient = new QueryClient({
       cacheTime: 3600000, // تخزين البيانات لمدة ساعة
       retry: 2, // محاولة إعادة الطلب مرتين في حالة الفشل
       suspense: true, // تفعيل Suspense
-      refetchOnWindowFocus: false, // عدم إعادة الطلب عند التركيز على النافذة
-      refetchOnMount: false, // عدم إعادة الطلب عند تركيب المكون
+      refetchOnWindowFocus: true, // إعادة الطلب عند التركيز على النافذة
+      refetchOnMount: true, // إعادة الطلب عند تركيب المكون
     },
   },
 });
