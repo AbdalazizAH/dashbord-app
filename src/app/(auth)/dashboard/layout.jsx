@@ -38,11 +38,11 @@ export default function DashboardLayout({ children }) {
       path: "/dashboard/invoices",
     },
     { icon: <FaClipboardList />, title: "الطلبات", path: "/dashboard/orders" },
-    { icon: <FaUsers />, title: "العملاء", path: "/dashboard/customers" },
+    { icon: <FaUsers />, title: "الإعدادات", path: "/dashboard/settings" },
     { icon: <FaChartLine />, title: "التقارير", path: "/dashboard/reports" },
     //proivt
     ...(user?.role === "manager"
-      ? [{ icon: <FaCog />, title: "الإعدادات", path: "/dashboard/settings" }]
+      ? [{ icon: <FaCog />, title: "مديري المحتوي", path: "/dashboard/admins" }]
       : []),
   ];
 
