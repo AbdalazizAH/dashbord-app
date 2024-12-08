@@ -5,6 +5,7 @@ import { encryptToken } from "@/utils/encryption";
 import { FaUser, FaLock, FaShoppingCart } from "react-icons/fa";
 import { showToast } from "@/utils/toast";
 import { useAuth } from "@/app/providers/AuthProvider";
+import EmailVerification from "./components/EmailVerification";
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -13,6 +14,8 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { login } = useAuth();
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState("");
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -47,6 +50,10 @@ export default function Login() {
         showToast.success("تم تسجيل الدخول بنجاح");
         await login(data.access_token);
         router.push("/dashboard");
+      } else if (data.is_email_verified === false) {
+        showToast.dismiss(toastId);
+        setNeedsVerification(true);
+        setVerificationEmail(data.email);
       } else {
         showToast.dismiss(toastId);
         showToast.error("خطأ في اسم المستخدم أو كلمة المرور");
@@ -60,6 +67,26 @@ export default function Login() {
       setIsLoading(false);
     }
   };
+
+  const handleVerificationComplete = () => {
+    setNeedsVerification(false);
+    showToast.success("تم التحقق بنجاح، يرجى تسجيل الدخول مرة أخرى");
+  };
+
+  if (needsVerification) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 to-indigo-800 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8">
+            <EmailVerification
+              email={verificationEmail}
+              onVerificationComplete={handleVerificationComplete}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 to-indigo-800 flex items-center justify-center p-4">

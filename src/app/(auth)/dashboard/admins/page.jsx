@@ -215,6 +215,12 @@ export default function Admins() {
                       الدور
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                      الحالة
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                      التحقق
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                       الإجراءات
                     </th>
                   </tr>
@@ -246,6 +252,32 @@ export default function Admins() {
                         <div className="text-sm text-gray-900 flex items-center gap-2">
                           <FaUserTag className="text-gray-400" />
                           {admin.role}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900 flex items-center gap-2">
+                          {admin.is_active ? (
+                            <span className="bg-green-100 text-green-800 text-xs font-medium px-3 py-1.5 rounded-full border border-green-200">
+                              نشط
+                            </span>
+                          ) : (
+                            <span className="bg-red-100 text-red-800 text-xs font-medium px-3 py-1.5 rounded-full border border-red-200">
+                              غير نشط
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900 flex items-center gap-2">
+                          {admin.is_email_verified ? (
+                            <span className="bg-green-100 text-green-800 text-xs font-medium px-3 py-1.5 rounded-full border border-green-200">
+                              تم التحقق
+                            </span>
+                          ) : (
+                            <span className="bg-red-100 text-red-800 text-xs font-medium px-3 py-1.5 rounded-full border border-red-200">
+                              لم يتم التحقق
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4">

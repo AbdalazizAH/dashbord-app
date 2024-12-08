@@ -5,7 +5,7 @@ const BASE_URL = "https://backend-v1-psi.vercel.app/dashboard";
 export const superadmin = {
     // جلب جميع المديرين
     getAdmins: async () => {
-        const token = getToken();
+        const token = await getToken();
         const response = await fetch(`${BASE_URL}/admin`, {
             headers: {
                 accept: "application/json",
@@ -19,7 +19,7 @@ export const superadmin = {
     // إضافة مدير جديد
     addAdmin: async (data) => {
         const token = getToken();
-        const response = await fetch(`${BASE_URL}/create-admin/`, {
+        const response = await fetch(`${BASE_URL}/create-admin`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
