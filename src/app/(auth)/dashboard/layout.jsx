@@ -5,14 +5,14 @@ import {
   FaUsers,
   FaBox,
   FaChartLine,
-  FaSignOutAlt,
   FaCog,
   FaHome,
   FaClipboardList,
-  FaBars,
 } from "react-icons/fa";
 import { showToast } from "@/utils/toast";
 import { useAuth } from "@/app/providers/AuthProvider";
+import Sidebar from "../../../components/componentslayout/Sidebar";
+import Header from "../../../components/componentslayout/Header";
 
 export default function DashboardLayout({ children }) {
   const router = useRouter();
@@ -32,115 +32,32 @@ export default function DashboardLayout({ children }) {
     { icon: <FaBox />, title: "الأصناف", path: "/dashboard/categories" },
     { icon: <FaBox />, title: "المنتجات", path: "/dashboard/products" },
     { icon: <FaUsers />, title: "الموردين", path: "/dashboard/suppliers" },
-    {
-      icon: <FaClipboardList />,
-      title: "الفواتير",
-      path: "/dashboard/invoices",
-    },
+    { icon: <FaClipboardList />, title: "الفواتير", path: "/dashboard/invoices" },
     { icon: <FaClipboardList />, title: "الطلبات", path: "/dashboard/orders" },
     { icon: <FaUsers />, title: "الإعدادات", path: "/dashboard/settings" },
     { icon: <FaChartLine />, title: "التقارير", path: "/dashboard/reports" },
-    //proivt
     ...(user?.role === "manager"
       ? [{ icon: <FaCog />, title: "مديري المحتوي", path: "/dashboard/admins" }]
       : []),
   ];
 
+  const currentPageTitle = menuItems.find((item) => item.path === pathname)?.title || "لوحة التحكم";
+
   return (
     <div className="min-h-screen bg-gray-100 flex">
-      {/* Sidebar */}
-      <aside
-        className={`bg-white shadow-lg fixed right-0 top-0 h-full transition-all duration-300 z-50 ${
-          isSidebarOpen ? "w-64" : "w-20"
-        }`}
-      >
-        <div className="p-4 border-b">
-          <div className="flex items-center justify-between">
-            {isSidebarOpen && (
-              <span className="text-xl font-bold text-gray-800">
-                متجرك الإلكتروني
-              </span>
-            )}
-            <button
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="p-2 rounded-lg hover:bg-gray-100"
-            >
-              <FaBars className="text-gray-600" />
-            </button>
-          </div>
-        </div>
+      <Sidebar
+        isSidebarOpen={isSidebarOpen}
+        setIsSidebarOpen={setIsSidebarOpen}
+        menuItems={menuItems}
+        onLogout={handleLogout}
+      />
 
-        <nav className="mt-6">
-          {menuItems.map((item, index) => (
-            <button
-              key={index}
-              onClick={() => router.push(item.path)}
-              className={`w-full flex items-center p-4 hover:bg-blue-50 transition-colors ${
-                pathname === item.path
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-gray-700 hover:text-blue-600"
-              }`}
-            >
-              <span className="text-xl">{item.icon}</span>
-              {isSidebarOpen && (
-                <span className="mr-4 text-sm font-medium">{item.title}</span>
-              )}
-            </button>
-          ))}
-
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center p-4 hover:bg-red-50 text-red-600 transition-colors mt-4"
-          >
-            <span className="text-xl">
-              <FaSignOutAlt />
-            </span>
-            {isSidebarOpen && (
-              <span className="mr-4 text-sm font-medium">تسجيل الخروج</span>
-            )}
-          </button>
-        </nav>
-      </aside>
-
-      {/* Main Content */}
       <main
         className={`flex-1 transition-all duration-300 ${
           isSidebarOpen ? "mr-64" : "mr-20"
         }`}
       >
-        {/* Header */}
-        <header className="bg-white shadow-sm sticky top-0 z-40">
-          <div className="mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              <h1 className="text-2xl font-bold text-gray-900">
-                {menuItems.find((item) => item.path === pathname)?.title ||
-                  "لوحة التحكم"}
-              </h1>
-              <div className="flex items-center gap-4">
-                <span className="text-gray-600">مرحباً بك</span>
-                <span className="text-gray-600">{user?.name}</span>
-                <span
-                  className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    user?.role === "admin"
-                      ? "bg-purple-100 text-purple-700"
-                      : user?.role === "superadmin"
-                      ? "bg-red-100 text-red-700"
-                      : user?.role === "manager"
-                      ? "bg-blue-100 text-blue-700"
-                      : "bg-gray-100 text-gray-700"
-                  }`}
-                >
-                  {user?.role}
-                </span>
-                <button className="p-2 rounded-full hover:bg-gray-100">
-                  <FaCog className="text-gray-600" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Page Content */}
+        <Header title={currentPageTitle} user={user} />
         <div className="min-h-[calc(100vh-4rem)]">{children}</div>
       </main>
     </div>

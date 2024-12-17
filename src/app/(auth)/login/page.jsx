@@ -19,7 +19,7 @@ export default function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    const toastId = showToast.loading("جاري تسجيل الدخول...");
+    // const toastId = showToast.loading("جاري تسجيل الدخول...");
     setIsLoading(true);
     setError("");
 
@@ -46,21 +46,21 @@ export default function Login() {
         const encryptedToken = encryptToken(data.access_token);
         localStorage.setItem("token", encryptedToken);
         document.cookie = `token=${data.access_token}; path=/; secure; samesite=strict`;
-        showToast.dismiss(toastId);
-        showToast.success("تم تسجيل الدخول بنجاح");
+        // showToast.dismiss(toastId);
+        // showToast.success("تم تسجيل الدخول بنجاح");
         await login(data.access_token);
         router.push("/dashboard");
       } else if (data.is_email_verified === false) {
-        showToast.dismiss(toastId);
+        // showToast.dismiss(toastId);
         setNeedsVerification(true);
         setVerificationEmail(data.email);
       } else {
-        showToast.dismiss(toastId);
+        // showToast.dismiss(toastId);
         showToast.error("خطأ في اسم المستخدم أو كلمة المرور");
         setError("خطأ في اسم المستخدم أو كلمة المرور");
       }
     } catch (err) {
-      showToast.dismiss(toastId);
+      // showToast.dismiss(toastId);
       showToast.error("حدث خطأ في الاتصال بالخادم");
       setError("حدث خطأ في الاتصال بالخادم");
     } finally {
